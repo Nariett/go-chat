@@ -1,0 +1,41 @@
+services:
+    postgres:
+        image: postgres:latest
+        container_name: postgres_container
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: 1111
+            POSTGRES_DB: ChatDB
+            TZ: Europe/Moscow
+        ports:
+            - "8080:5432"
+        networks:
+            - app-networks
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    server:
+        build:
+            context: ./server
+            dockerfile: Dockerfile
+        container_name: server_container
+        environment:
+            DB_USER: postgres
+            DB_PASSWORD: 1111
+            DB_NAME: ChatDB
+            DB_SSLMODE: disable
+            PROTOCOL: tcp
+            DB_PORT: 5432
+            DB_HOST: postgres
+            LPORT: 80
+        ports:
+            - "80:80"
+        networks:
+            - app-networks
+        depends_on:
+            - postgres
+networks:
+    app-networks:
+volumes:
+    postgres_data:
