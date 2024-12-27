@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Nariett/go-chat/Proto"
 	"github.com/lib/pq"
 )
 
@@ -79,43 +80,30 @@ func TestShowAllUsersData(t *testing.T) {
 }
 
 func TestRegUser(t *testing.T) {
-	var idUser int
-	user := User{"testName", "testPassword"}
+	user := Proto.UserData{Name: "testName", Password: "testPassword"}
 
 	db := initDB()
 	defer db.Close()
 
-	_, err := db.Exec("INSERT INTO users (name, password) VALUES ($1, $2)", user.name, user.password)
-	if err != nil {
-		t.Fatalf("Ошибка добавления пользователя:%s", err)
-	}
-	fmt.Printf("Id добавленного пользователя в системе %d\n", idUser)
-
-	err = db.QueryRow("SELECT id FROM users WHERE name = $1 AND password = $2", user.name, user.password).Scan(&idUser)
-	if err != nil {
-		t.Fatalf("Ошибка проверка пользователя:%s", err)
-	}
-	fmt.Printf("Пользователь найден id: %d name: %s password: %s\n", idUser, user.name, user.password)
-
-	_, err = db.Exec("DELETE FROM users WHERE id = $1", idUser)
-	if err != nil {
-		t.Fatalf("Ошибка удаления пользователя:%s", err)
-	}
-	fmt.Printf("Добавленный пользователь удален\n")
-}
-
-func TestAuthUser(t *testing.T) {
-	var idUser int
-	user := User{"Саша", "123456"}
-
-	db := initDB()
-	defer db.Close()
-
-	err := db.QueryRow("SELECT id FROM users WHERE name = $1 AND password = $2", user.name, user.password).Scan(&idUser)
+	result, err := RegUser(db, &user)
 	if err != nil {
 		t.Fatalf("Ошибка запроса:%s", err)
 	}
-	log.Printf("Id зарегистрированного пользователя в системе %d", idUser)
+	fmt.Printf("%s\n", result.Message)
+}
+
+func TestAuthUser(t *testing.T) {
+
+	user := Proto.UserData{Name: "testName", Password: "testPassword"}
+
+	db := initDB()
+	defer db.Close()
+
+	result, err := AuthUser(db, &user)
+	if err != nil {
+		t.Fatalf("Ошибка запроса:%s", err)
+	}
+	fmt.Println(result.Message)
 }
 
 func TestInsertTransactions(t *testing.T) {
