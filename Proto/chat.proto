@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package chat;
 
-option go_package = ".";
+option go_package = "./Proto";
 
 service ChatService{
     rpc RegUser(UserData) returns (ServerResponse);
