@@ -4,7 +4,7 @@
 // - protoc             v5.29.0
 // source: chat.proto
 
-package Proto
+package __
 
 import (
 	context "context"
@@ -22,6 +22,7 @@ const (
 	ChatService_RegUser_FullMethodName     = "/chat.ChatService/RegUser"
 	ChatService_AuthUser_FullMethodName    = "/chat.ChatService/AuthUser"
 	ChatService_JoinChat_FullMethodName    = "/chat.ChatService/JoinChat"
+	ChatService_LeaveChat_FullMethodName   = "/chat.ChatService/LeaveChat"
 	ChatService_GetUsers_FullMethodName    = "/chat.ChatService/GetUsers"
 	ChatService_SendMessage_FullMethodName = "/chat.ChatService/SendMessage"
 )
@@ -33,6 +34,7 @@ type ChatServiceClient interface {
 	RegUser(ctx context.Context, in *UserData, opts ...grpc.CallOption) (*ServerResponse, error)
 	AuthUser(ctx context.Context, in *UserData, opts ...grpc.CallOption) (*ServerResponse, error)
 	JoinChat(ctx context.Context, in *User, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UserMessage], error)
+	LeaveChat(ctx context.Context, in *User, opts ...grpc.CallOption) (*ServerResponse, error)
 	GetUsers(ctx context.Context, in *User, opts ...grpc.CallOption) (*ActiveUsers, error)
 	SendMessage(ctx context.Context, in *UserMessage, opts ...grpc.CallOption) (*Empty, error)
 }
@@ -84,6 +86,16 @@ func (c *chatServiceClient) JoinChat(ctx context.Context, in *User, opts ...grpc
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ChatService_JoinChatClient = grpc.ServerStreamingClient[UserMessage]
 
+func (c *chatServiceClient) LeaveChat(ctx context.Context, in *User, opts ...grpc.CallOption) (*ServerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ServerResponse)
+	err := c.cc.Invoke(ctx, ChatService_LeaveChat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *chatServiceClient) GetUsers(ctx context.Context, in *User, opts ...grpc.CallOption) (*ActiveUsers, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ActiveUsers)
@@ -111,6 +123,7 @@ type ChatServiceServer interface {
 	RegUser(context.Context, *UserData) (*ServerResponse, error)
 	AuthUser(context.Context, *UserData) (*ServerResponse, error)
 	JoinChat(*User, grpc.ServerStreamingServer[UserMessage]) error
+	LeaveChat(context.Context, *User) (*ServerResponse, error)
 	GetUsers(context.Context, *User) (*ActiveUsers, error)
 	SendMessage(context.Context, *UserMessage) (*Empty, error)
 	mustEmbedUnimplementedChatServiceServer()
@@ -131,6 +144,9 @@ func (UnimplementedChatServiceServer) AuthUser(context.Context, *UserData) (*Ser
 }
 func (UnimplementedChatServiceServer) JoinChat(*User, grpc.ServerStreamingServer[UserMessage]) error {
 	return status.Errorf(codes.Unimplemented, "method JoinChat not implemented")
+}
+func (UnimplementedChatServiceServer) LeaveChat(context.Context, *User) (*ServerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LeaveChat not implemented")
 }
 func (UnimplementedChatServiceServer) GetUsers(context.Context, *User) (*ActiveUsers, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUsers not implemented")
@@ -206,6 +222,24 @@ func _ChatService_JoinChat_Handler(srv interface{}, stream grpc.ServerStream) er
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ChatService_JoinChatServer = grpc.ServerStreamingServer[UserMessage]
 
+func _ChatService_LeaveChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(User)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).LeaveChat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_LeaveChat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).LeaveChat(ctx, req.(*User))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ChatService_GetUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(User)
 	if err := dec(in); err != nil {
@@ -256,6 +290,10 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AuthUser",
 			Handler:    _ChatService_AuthUser_Handler,
+		},
+		{
+			MethodName: "LeaveChat",
+			Handler:    _ChatService_LeaveChat_Handler,
 		},
 		{
 			MethodName: "GetUsers",

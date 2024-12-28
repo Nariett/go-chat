@@ -1,3 +1,4 @@
 .vscode/
+.idea/
 Client/.env
 Server/.env

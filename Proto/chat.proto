@@ -2,12 +2,13 @@ syntax = "proto3";
 
 package chat;
 
-option go_package = "./Proto";
+option go_package = ".";
 
 service ChatService{
     rpc RegUser(UserData) returns (ServerResponse);
     rpc AuthUser(UserData) returns (ServerResponse);
     rpc JoinChat(User) returns (stream UserMessage);
+    rpc LeaveChat(User) returns (ServerResponse);
     rpc GetUsers(User) returns (ActiveUsers);
     rpc SendMessage (UserMessage) returns (Empty);
 }
