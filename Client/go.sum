@@ -1,5 +1,7 @@
 github.com/Nariett/go-chat/Proto v0.0.0-20241228233637-fc62c3ebaf63 h1:ach5PhgJugtVsWIS3vMfLGhKwYEY9k6TjJbvzTJ4Y1Q=
 github.com/Nariett/go-chat/Proto v0.0.0-20241228233637-fc62c3ebaf63/go.mod h1:mKUoe+NmQffdRqirxcKWz8tW2+Jll165f1r4Dz/42gc=
+github.com/Nariett/go-chat/Proto v0.0.0-20241229002951-961387cc82ad h1:0D663uL/VcZ3qOnxEP6mttQwb5R2bwsY7jCu70X8TuU=
+github.com/Nariett/go-chat/Proto v0.0.0-20241229002951-961387cc82ad/go.mod h1:mKUoe+NmQffdRqirxcKWz8tW2+Jll165f1r4Dz/42gc=
 github.com/go-logr/logr v1.4.2 h1:6pFjapn8bFcIbiKo3XT4j/BhANplGihG6tvd+8rYgrY=
 github.com/go-logr/logr v1.4.2/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=

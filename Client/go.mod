@@ -3,7 +3,7 @@ module Client
 go 1.23.3
 
 require (
-	github.com/Nariett/go-chat/Proto v0.0.0-20241228233637-fc62c3ebaf63
+	github.com/Nariett/go-chat/Proto v0.0.0-20241229002951-961387cc82ad
 	github.com/joho/godotenv v1.5.1
 	google.golang.org/grpc v1.69.2
 )
