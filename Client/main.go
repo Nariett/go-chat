@@ -4,9 +4,8 @@ import (
 	"Client/config"
 	"Client/internal/chat"
 	"fmt"
-	"log"
-
 	"google.golang.org/grpc"
+	"log"
 
 	proto "github.com/Nariett/go-chat/Proto"
 )
@@ -39,16 +38,20 @@ func main() {
 	fmt.Println("Список всех пользователей:", users.Usernames)
 
 	go client.ListenChat(stream)
-
+	fmt.Println("Для выхода из чата введите \"Выйти\"")
 	for {
 		var recipient, message string
 
 		fmt.Println("Введите имя, кому хотите отправить сообщение: ")
 		fmt.Scanln(&recipient)
-
+		if recipient == "Выйти" {
+			chat.ExitChat(client, name)
+		}
 		fmt.Println("Введите сообщение: ")
 		fmt.Scanln(&message)
-
+		if message == "Выйти" {
+			chat.ExitChat(client, name)
+		}
 		if len(recipient) != 0 && len(message) != 0 {
 			_, err := client.SendMessage(name, recipient, message)
 			if err != nil {

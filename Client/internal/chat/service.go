@@ -16,6 +16,9 @@ func (r *ChatRepository) GetUsers(name string) (*proto.ActiveUsers, error) {
 func (r *ChatRepository) JoinChat(name string) (proto.ChatService_JoinChatClient, error) {
 	return r.client.JoinChat(context.Background(), &proto.User{Name: name})
 }
+func (r *ChatRepository) LeaveChat(name string) (*proto.ServerResponse, error) {
+	return r.client.LeaveChat(context.Background(), &proto.User{Name: name})
+}
 
 func (r *ChatRepository) SendMessage(sender, recipient, content string) (*proto.Empty, error) {
 	message := &proto.UserMessage{
@@ -95,4 +98,13 @@ func InitUser(client *ChatRepository) string {
 			return name
 		}
 	}
+}
+
+func ExitChat(client *ChatRepository, name string) {
+	response, err := client.LeaveChat(name)
+	if err != nil {
+		fmt.Println("Ошибка)")
+	}
+	fmt.Println(response.Message)
+	os.Exit(0)
 }

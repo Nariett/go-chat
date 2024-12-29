@@ -46,6 +46,16 @@ func (c *ChatServer) JoinChat(user *proto.User, stream proto.ChatService_JoinCha
 	return nil
 }
 
+func (c *ChatServer) LeaveChat(ctx context.Context, user *proto.User) (*proto.ServerResponse, error) {
+	c.mu.Lock()
+	delete(c.users, user.Name)
+	c.mu.Unlock()
+	log.Printf("Пользователь %s вышел из чата", user.Name)
+	return &proto.ServerResponse{
+		Success: true,
+		Message: "Вы вышли из чата",
+	}, nil
+}
 func (c *ChatServer) GetUsers(ctx context.Context, user *proto.User) (*proto.ActiveUsers, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
