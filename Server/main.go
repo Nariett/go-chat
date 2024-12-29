@@ -11,9 +11,9 @@ import (
 )
 
 func main() {
-	config := config.LoadConfig()
+	loadConfig := config.LoadConfig()
 
-	connStr := config.BuildConnStr()
+	connStr := loadConfig.BuildConnStr()
 
 	log.Printf("Строка подключения к бд: %s", connStr)
 
@@ -22,9 +22,13 @@ func main() {
 		log.Fatalf("Ошибка подключения к базе данных: %v", err)
 	}
 	log.Println("База данных подключена")
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Fatalf("Ошибка закрытия подключения: %v", err)
+		}
+	}()
 
-	protocol, port := config.GetProtocolAndPort()
+	protocol, port := loadConfig.GetProtocolAndPort()
 	listener, err := net.Listen(protocol, port)
 	if err != nil {
 		log.Fatalf("Ошибка запуска сервера: %v", err)

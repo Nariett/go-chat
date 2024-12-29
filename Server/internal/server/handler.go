@@ -48,6 +48,10 @@ func (c *ChatServer) JoinChat(user *proto.User, stream proto.ChatService_JoinCha
 
 func (c *ChatServer) LeaveChat(ctx context.Context, user *proto.User) (*proto.ServerResponse, error) {
 	c.mu.Lock()
+	err := database.UpdateLastActivity(c.db, user)
+	if err != nil {
+		log.Fatal(err)
+	}
 	delete(c.users, user.Name)
 	c.mu.Unlock()
 	log.Printf("Пользователь %s вышел из чата", user.Name)
@@ -56,6 +60,7 @@ func (c *ChatServer) LeaveChat(ctx context.Context, user *proto.User) (*proto.Se
 		Message: "Вы вышли из чата",
 	}, nil
 }
+
 func (c *ChatServer) GetUsers(ctx context.Context, user *proto.User) (*proto.ActiveUsers, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -83,16 +88,16 @@ func (c *ChatServer) RegUser(ctx context.Context, user *proto.UserData) (*proto.
 	resultChan := make(chan *proto.ServerResponse)
 	errorChan := make(chan error)
 	go func() {
-		responce, err := database.RegUser(c.db, user)
+		response, err := database.RegUser(c.db, user)
 		if err != nil {
 			errorChan <- err
 			return
 		}
-		resultChan <- responce
+		resultChan <- response
 	}()
 	select {
-	case responce := <-resultChan:
-		return responce, nil
+	case response := <-resultChan:
+		return response, nil
 	case err := <-errorChan:
 		log.Printf("Ошибка при регистрации: %v", err)
 		return nil, err
@@ -106,16 +111,16 @@ func (c *ChatServer) AuthUser(ctx context.Context, user *proto.UserData) (*proto
 	resultChan := make(chan *proto.ServerResponse)
 	errorChan := make(chan error)
 	go func() {
-		responce, err := database.AuthUser(c.db, user)
+		response, err := database.AuthUser(c.db, user)
 		if err != nil {
 			errorChan <- err
 			return
 		}
-		resultChan <- responce
+		resultChan <- response
 	}()
 	select {
-	case responce := <-resultChan:
-		return responce, nil
+	case response := <-resultChan:
+		return response, nil
 	case err := <-errorChan:
 		log.Printf("Ошибка авторизации: %v", err)
 		return nil, err

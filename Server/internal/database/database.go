@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"time"
 
@@ -78,7 +79,7 @@ func AuthUser(db *sql.DB, user *proto.UserData) (*proto.ServerResponse, error) {
 
 	err = tx.QueryRow("SELECT id FROM users WHERE name = $1 AND password = $2", user.Name, user.Password).Scan(&idUser)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			log.Println("Пользователь не найден")
 			_ = tx.Rollback()
 			return &proto.ServerResponse{
@@ -86,8 +87,8 @@ func AuthUser(db *sql.DB, user *proto.UserData) (*proto.ServerResponse, error) {
 				Message: "Пользователь не найден. Проверьте данные и повторите попытку",
 			}, nil
 		} else {
-			log.Fatalf("Ошибка выполнения запроса: %v", err)
 			_ = tx.Rollback()
+			log.Printf("Ошибка выполнения запроса: %v", err)
 			return &proto.ServerResponse{
 				Success: false,
 				Message: "Ошибка получения данных, повторите попытку.",
@@ -100,8 +101,8 @@ func AuthUser(db *sql.DB, user *proto.UserData) (*proto.ServerResponse, error) {
 	}
 	_, err = tx.Exec("UPDATE activity SET date = $1 WHERE idUser = $2", time.Now().In(location), idUser)
 	if err != nil {
-		log.Fatalf("Ошибка вставки данных: %v", err)
 		_ = tx.Rollback()
+		log.Printf("Ошибка выполнения запроса: %v", err)
 		return &proto.ServerResponse{
 			Success: false,
 			Message: "Ошибка добавления данных, повторите попытку.",
@@ -115,4 +116,13 @@ func AuthUser(db *sql.DB, user *proto.UserData) (*proto.ServerResponse, error) {
 	log.Printf("Транзакция выполнена")
 
 	return &proto.ServerResponse{Success: true}, nil
+}
+
+func UpdateLastActivity(db *sql.DB, user *proto.User) error {
+	location, err := time.LoadLocation("Europe/Moscow")
+	_, err = db.Exec("UPDATE activity SET date = $1 WHERE idUser = (SELECT id FROM users WHERE name = $2)", time.Now().In(location), user.Name)
+	if err != nil {
+		log.Fatalf("Обновленрия данных %v\n", err)
+	}
+	return nil
 }

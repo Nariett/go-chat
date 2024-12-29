@@ -12,15 +12,19 @@ import (
 
 func main() {
 
-	config := config.LoadConfig()
+	loadConfig := config.LoadConfig()
 
-	connStr := config.BuildConnStr()
+	connStr := loadConfig.BuildConnStr()
 
 	conn, err := grpc.Dial(connStr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("Ошибка подключения: %v", err)
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Fatalf("Ошибка закрытия подключения: %v", err)
+		}
+	}()
 
 	client := chat.NewChatRepository(proto.NewChatServiceClient(conn))
 
