@@ -10,6 +10,7 @@ service ChatService{
     rpc JoinChat(User) returns (stream UserMessage);
     rpc LeaveChat(User) returns (ServerResponse);
     rpc GetUsers(User) returns (Users);
+    rpc UnreadMessage (User) returns (UnreadMessages);
     rpc GetActiveUsers(Empty) returns (Users);
     rpc SendMessage (UserMessage) returns (Empty);
     rpc ReadMessage (UnreadChat) returns (Empty);
@@ -24,6 +25,9 @@ message Users{
 message UnreadChat{
     string recipient = 1;
     string sender = 2;
+}
+message UnreadMessages{
+    map<string, int32>  messages = 1;
 }
 message UserData{
     string name = 1;

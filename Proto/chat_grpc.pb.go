@@ -24,6 +24,7 @@ const (
 	ChatService_JoinChat_FullMethodName       = "/chat.ChatService/JoinChat"
 	ChatService_LeaveChat_FullMethodName      = "/chat.ChatService/LeaveChat"
 	ChatService_GetUsers_FullMethodName       = "/chat.ChatService/GetUsers"
+	ChatService_UnreadMessage_FullMethodName  = "/chat.ChatService/UnreadMessage"
 	ChatService_GetActiveUsers_FullMethodName = "/chat.ChatService/GetActiveUsers"
 	ChatService_SendMessage_FullMethodName    = "/chat.ChatService/SendMessage"
 	ChatService_ReadMessage_FullMethodName    = "/chat.ChatService/ReadMessage"
@@ -38,6 +39,7 @@ type ChatServiceClient interface {
 	JoinChat(ctx context.Context, in *User, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UserMessage], error)
 	LeaveChat(ctx context.Context, in *User, opts ...grpc.CallOption) (*ServerResponse, error)
 	GetUsers(ctx context.Context, in *User, opts ...grpc.CallOption) (*Users, error)
+	UnreadMessage(ctx context.Context, in *User, opts ...grpc.CallOption) (*UnreadMessages, error)
 	GetActiveUsers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Users, error)
 	SendMessage(ctx context.Context, in *UserMessage, opts ...grpc.CallOption) (*Empty, error)
 	ReadMessage(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*Empty, error)
@@ -110,6 +112,16 @@ func (c *chatServiceClient) GetUsers(ctx context.Context, in *User, opts ...grpc
 	return out, nil
 }
 
+func (c *chatServiceClient) UnreadMessage(ctx context.Context, in *User, opts ...grpc.CallOption) (*UnreadMessages, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnreadMessages)
+	err := c.cc.Invoke(ctx, ChatService_UnreadMessage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *chatServiceClient) GetActiveUsers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Users, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Users)
@@ -149,6 +161,7 @@ type ChatServiceServer interface {
 	JoinChat(*User, grpc.ServerStreamingServer[UserMessage]) error
 	LeaveChat(context.Context, *User) (*ServerResponse, error)
 	GetUsers(context.Context, *User) (*Users, error)
+	UnreadMessage(context.Context, *User) (*UnreadMessages, error)
 	GetActiveUsers(context.Context, *Empty) (*Users, error)
 	SendMessage(context.Context, *UserMessage) (*Empty, error)
 	ReadMessage(context.Context, *UnreadChat) (*Empty, error)
@@ -176,6 +189,9 @@ func (UnimplementedChatServiceServer) LeaveChat(context.Context, *User) (*Server
 }
 func (UnimplementedChatServiceServer) GetUsers(context.Context, *User) (*Users, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUsers not implemented")
+}
+func (UnimplementedChatServiceServer) UnreadMessage(context.Context, *User) (*UnreadMessages, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnreadMessage not implemented")
 }
 func (UnimplementedChatServiceServer) GetActiveUsers(context.Context, *Empty) (*Users, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetActiveUsers not implemented")
@@ -290,6 +306,24 @@ func _ChatService_GetUsers_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_UnreadMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(User)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).UnreadMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_UnreadMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).UnreadMessage(ctx, req.(*User))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ChatService_GetActiveUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Empty)
 	if err := dec(in); err != nil {
@@ -366,6 +400,10 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUsers",
 			Handler:    _ChatService_GetUsers_Handler,
+		},
+		{
+			MethodName: "UnreadMessage",
+			Handler:    _ChatService_UnreadMessage_Handler,
 		},
 		{
 			MethodName: "GetActiveUsers",
