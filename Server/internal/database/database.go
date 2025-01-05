@@ -117,12 +117,106 @@ func AuthUser(db *sql.DB, user *proto.UserData) (*proto.ServerResponse, error) {
 
 	return &proto.ServerResponse{Success: true}, nil
 }
+func InsertMessage(db *sql.DB, message *proto.UserMessage) error {
+	tx, err := db.Begin()
+	if err != nil {
+		log.Printf("Ошибка начала транзакции %v\n", err)
+		return err
+	}
+	var senderId, recipientId int
+	err = tx.QueryRow("SELECT id FROM users WHERE name = $1", message.Sender).Scan(&senderId)
+	if err != nil {
+		_ = tx.Rollback()
+		log.Printf("Ошибка выполнения запроса: %v", err)
+		return err
+	}
+	err = tx.QueryRow("SELECT id FROM users WHERE name = $1", message.Recipient).Scan(&recipientId)
+	if err != nil {
+		_ = tx.Rollback()
+		log.Printf("Ошибка выполнения запроса: %v", err)
+		return err
+	}
+
+	_, err = tx.Exec("INSERT INTO messages (sender_id, recipient_id, content, sent_at) VALUES ($1, $2, $3, $4)", senderId, recipientId, message.Content, message.SentAt.AsTime())
+	if err != nil {
+		_ = tx.Rollback()
+		log.Printf("Ошибка выполнения запроса: %v", err)
+		return err
+	}
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("Ошибка выполнения транзакции: %v", err)
+		return err
+	}
+	return nil
+}
 
 func UpdateLastActivity(db *sql.DB, user *proto.User) error {
 	location, err := time.LoadLocation("Europe/Moscow")
 	_, err = db.Exec("UPDATE activity SET date = $1 WHERE idUser = (SELECT id FROM users WHERE name = $2)", time.Now().In(location), user.Name)
 	if err != nil {
-		log.Fatalf("Обновленрия данных %v\n", err)
+		log.Fatalf("Ошибка обновления данных %v\n", err)
 	}
 	return nil
+}
+
+func GetUsers(db *sql.DB, user *proto.User) ([]string, error) {
+	rows, err := db.Query("SELECT name FROM users WHERE name != $1", user.Name)
+	if err != nil {
+		log.Fatalf("Ошибка получения данных %v\n", err)
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Fatal("Ошибка")
+		}
+	}(rows)
+
+	var usernames []string
+	for rows.Next() {
+		var username string
+		if err := rows.Scan(&username); err != nil {
+			log.Fatal("Ошибка чтения строки")
+		}
+		usernames = append(usernames, username)
+	}
+	if err := rows.Err(); err != nil {
+		log.Fatal("Ошибка перебора строк")
+	}
+	return usernames, nil
+}
+
+func GetUnreadMessages(db *sql.DB, user *proto.User) (*proto.UnreadMessages, error) {
+	var receiverId int
+	err := db.QueryRow("SELECT id FROM users WHERE name = $1", user.Name).Scan(&receiverId)
+	if err != nil {
+		log.Printf("Ошибка выполнения запроса: %v", err)
+		return &proto.UnreadMessages{Messages: nil}, err
+	}
+	rows, err := db.Query("SELECT u.name, COUNT(m.id) FROM users u LEFT JOIN messages m ON u.id = m.sender_id AND m.recipient_id = $1 GROUP BY u.id", 1)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func(rows *sql.Rows) {
+		if err != nil {
+			log.Fatal("Ошибка")
+		}
+	}(rows)
+
+	UnreadMessages := &proto.UnreadMessages{
+		Messages: make(map[string]int32),
+	}
+
+	for rows.Next() {
+		var username string
+		var count int
+		if err := rows.Scan(&username, &count); err != nil {
+			log.Fatal("Ошибка чтения строки")
+		}
+		UnreadMessages.Messages[username] = int32(count)
+	}
+	if err := rows.Err(); err != nil {
+		log.Fatal("Ошибка обработки строки")
+	}
+	return UnreadMessages, nil
 }

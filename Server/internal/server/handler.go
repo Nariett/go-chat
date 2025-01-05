@@ -4,11 +4,10 @@ import (
 	"Server/internal/database"
 	"context"
 	"database/sql"
+	proto "github.com/Nariett/go-chat/Proto"
 	"log"
 	"strings"
 	"sync"
-
-	proto "github.com/Nariett/go-chat/Proto"
 )
 
 type ChatServer struct {
@@ -46,7 +45,7 @@ func (c *ChatServer) JoinChat(user *proto.User, stream proto.ChatService_JoinCha
 	return nil
 }
 
-func (c *ChatServer) LeaveChat(ctx context.Context, user *proto.User) (*proto.ServerResponse, error) {
+func (c *ChatServer) LeaveChat(_ context.Context, user *proto.User) (*proto.ServerResponse, error) {
 	c.mu.Lock()
 	err := database.UpdateLastActivity(c.db, user)
 	if err != nil {
@@ -61,7 +60,7 @@ func (c *ChatServer) LeaveChat(ctx context.Context, user *proto.User) (*proto.Se
 	}, nil
 }
 
-func (c *ChatServer) GetUsers(ctx context.Context, user *proto.User) (*proto.ActiveUsers, error) {
+func (c *ChatServer) GetActiveUsers(_ context.Context, _ *proto.Empty) (*proto.Users, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	var activeUsers []string
@@ -69,16 +68,36 @@ func (c *ChatServer) GetUsers(ctx context.Context, user *proto.User) (*proto.Act
 		activeUsers = append(activeUsers, key)
 	}
 	log.Println("Активные пользователи:", strings.Join(activeUsers, " "))
-	return &proto.ActiveUsers{Usernames: activeUsers}, nil
+	return &proto.Users{Usernames: activeUsers}, nil
 }
 
-func (c *ChatServer) SendMessage(ctx context.Context, msg *proto.UserMessage) (*proto.Empty, error) {
+func (c *ChatServer) GetUsers(_ context.Context, user *proto.User) (*proto.Users, error) {
+	users, err := database.GetUsers(c.db, user)
+	if err != nil {
+		log.Fatal("Ошибка получения данных")
+	}
+	return &proto.Users{Usernames: users}, nil
+}
+
+func (c *ChatServer) GetUnreadMessages(_ context.Context, user *proto.User) (*proto.UnreadMessages, error) {
+	unreadMessages, err := database.GetUnreadMessages(c.db, user)
+	if err != nil {
+		log.Fatal("Ошибка получения данных")
+	}
+	return unreadMessages, nil
+}
+func (c *ChatServer) SendMessage(_ context.Context, msg *proto.UserMessage) (*proto.Empty, error) {
 	go func() {
 		c.mu.Lock()
 		defer c.mu.Unlock()
 
 		if ch, exists := c.users[msg.Recipient]; exists {
 			ch <- *msg
+		}
+
+		err := database.InsertMessage(c.db, msg)
+		if err != nil {
+			log.Fatal("Ошибка записи сообщения:", err)
 		}
 	}()
 	return &proto.Empty{}, nil
