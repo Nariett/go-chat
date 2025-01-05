@@ -1,18 +1,25 @@
 package chat
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	proto "github.com/Nariett/go-chat/Proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
 	"os"
-
-	proto "github.com/Nariett/go-chat/Proto"
+	"time"
 )
 
-func (r *ChatRepository) GetUsers(name string) (*proto.ActiveUsers, error) {
+func (r *ChatRepository) GetActiveUsers() (*proto.Users, error) {
+	return r.client.GetActiveUsers(context.Background(), &proto.Empty{})
+}
+func (r *ChatRepository) GetUsers(name string) (*proto.Users, error) {
 	return r.client.GetUsers(context.Background(), &proto.User{Name: name})
 }
-
+func (r *ChatRepository) GetUnreadMessages(name string) (*proto.UnreadMessages, error) {
+	return r.client.GetUnreadMessages(context.Background(), &proto.User{Name: name})
+}
 func (r *ChatRepository) JoinChat(name string) (proto.ChatService_JoinChatClient, error) {
 	return r.client.JoinChat(context.Background(), &proto.User{Name: name})
 }
@@ -25,6 +32,7 @@ func (r *ChatRepository) SendMessage(sender, recipient, content string) (*proto.
 		Sender:    sender,
 		Recipient: recipient,
 		Content:   content,
+		SentAt:    timestamppb.New(time.Now()),
 	}
 	response, err := r.client.SendMessage(context.Background(), message)
 	if err != nil {
@@ -43,23 +51,59 @@ func (r *ChatRepository) ListenChat(stream proto.ChatService_JoinChatClient) {
 	}
 }
 
+func (r *ChatRepository) GetOnlineUsersWithMessageCount(name string) []string {
+	activeUsers, err := r.GetActiveUsers()
+	if err != nil {
+		log.Fatalf("Ошибка получения списка активных пользователй: %v", err)
+	}
+
+	users, err := r.GetUsers(name)
+	if err != nil {
+		log.Fatalf("Ошибка получения списка пользователй: %v", err)
+	}
+
+	messageCount, err := r.GetUnreadMessages(name)
+	if err != nil {
+		log.Fatalf("Ошибка получения списка полученных сообщений: %v", err)
+	}
+	fmt.Println(messageCount.Messages)
+	var allUsers []string
+
+	for _, user := range users.Usernames {
+		count := messageCount.Messages[user]
+		status := ""
+		if Contains(activeUsers, user) {
+			status = " *"
+		}
+		if count > 0 {
+			allUsers = append(allUsers, fmt.Sprintf("%s (%d)%s", user, count, status))
+		} else {
+			allUsers = append(allUsers, fmt.Sprintf("%s%s", user, status))
+		}
+	}
+
+	return allUsers
+}
+
 func InitUser(client *ChatRepository) string {
 	var (
 		name     string
 		password string
 		flag     bool = false
-		value    int
 	)
+	scanner := bufio.NewScanner(os.Stdin) // Создаём сканер для ввода
 	for {
 		fmt.Println("1 - Войти в чат\n2 - Зарегистрироваться в чате\n3 - Выйти из чата")
-		fmt.Scanln(&value)
+		scanner.Scan() // Читаем ввод как строку
+		value := scanner.Text()
 		switch value {
-		case 1:
+		case "1":
 			fmt.Println("Введите имя: ")
-			fmt.Scanln(&name)
+			scanner.Scan()
+			name = scanner.Text()
 			fmt.Println("Введите пароль: ")
-			fmt.Scanln(&password)
-
+			scanner.Scan()
+			password = scanner.Text()
 			response, err := client.AuthUser(name, password)
 			if err != nil {
 				log.Fatalf("Ошибка аутентификации: %v", err)
@@ -70,12 +114,14 @@ func InitUser(client *ChatRepository) string {
 			} else {
 				fmt.Println(response.Message)
 			}
-		case 2:
+		case "2":
 			for {
 				fmt.Println("Введите имя: ")
-				fmt.Scanln(&name)
+				scanner.Scan()
+				name := scanner.Text()
 				fmt.Println("Введите пароль: ")
-				fmt.Scanln(&password)
+				scanner.Scan()
+				password = scanner.Text()
 				response, err := client.RegUser(name, password)
 				if err != nil {
 					log.Fatalf("Ошибка регистрации: %v", err)
@@ -88,7 +134,7 @@ func InitUser(client *ChatRepository) string {
 				}
 			}
 
-		case 3:
+		case "3":
 			fmt.Println("Вы вышли из чата...")
 			os.Exit(1)
 		default:
@@ -107,4 +153,13 @@ func ExitChat(client *ChatRepository, name string) {
 	}
 	fmt.Println(response.Message)
 	os.Exit(0)
+}
+
+func Contains(users *proto.Users, username string) bool {
+	for _, u := range users.Usernames {
+		if u == username {
+			return true
+		}
+	}
+	return false
 }
