@@ -4,14 +4,17 @@ package chat;
 
 option go_package = "./Proto";
 
+import "google/protobuf/timestamp.proto";
+
 service ChatService{
     rpc RegUser(UserData) returns (ServerResponse);
     rpc AuthUser(UserData) returns (ServerResponse);
     rpc JoinChat(User) returns (stream UserMessage);
     rpc LeaveChat(User) returns (ServerResponse);
     rpc GetUsers(User) returns (Users);
-    rpc UnreadMessage (User) returns (UnreadMessages);
     rpc GetActiveUsers(Empty) returns (Users);
+    rpc GetUsersActivityDates(Empty) returns (UserActivityDates);
+    rpc UnreadMessage (User) returns (UnreadMessages);
     rpc SendMessage (UserMessage) returns (Empty);
     rpc ReadMessage (UnreadChat) returns (Empty);
 }
@@ -33,6 +36,9 @@ message UserData{
     string name = 1;
     string password = 2;
 }
+message UserActivityDates{
+    map<string, google.protobuf.Timestamp> activity_date = 1;
+}
 message ServerResponse{
     bool success = 1;
     string message = 2;
@@ -41,7 +47,6 @@ message UserMessage{
     string sender = 1;
     string recipient = 2;
     string content = 3;
-    string sent_at = 4;
-    optional string read_at = 5;
+    google.protobuf.Timestamp sent_at = 4;
 }
 message Empty{}
