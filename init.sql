@@ -11,6 +11,17 @@ CREATE TABLE activity(
 	FOREIGN KEY (idUser) REFERENCES users (id)
 );
 
+CREATE TABLE messages (
+    id SERIAL PRIMARY KEY,
+    sender_id INT NOT NULL,
+    recipient_id INT NOT NULL,
+    content TEXT NOT NULL,
+    sent_at TIMESTAMP NOT NULL,
+    read_at TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES users (id),
+    FOREIGN KEY (recipient_id) REFERENCES users (id)
+);
+
 INSERT INTO users (name, password) VALUES 
 ('Саша', '123456'),
 ('Олег', '1111'),
