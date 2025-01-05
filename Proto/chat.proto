@@ -14,9 +14,9 @@ service ChatService{
     rpc GetUsers(User) returns (Users);
     rpc GetActiveUsers(Empty) returns (Users);
     rpc GetUsersActivityDates(Empty) returns (UserActivityDates);
-    rpc UnreadMessage (User) returns (UnreadMessages);
+    rpc GetUnreadMessages (User) returns (UnreadMessages);
     rpc SendMessage (UserMessage) returns (Empty);
-    rpc ReadMessage (UnreadChat) returns (Empty);
+    rpc ReadMessage (UnreadChat) returns (ServerResponse);
 }
 
 message User{
