@@ -1,7 +1,7 @@
 package server
 
 import (
-	"Server/internal/database"
+	"Server/internal/storage"
 	"context"
 	"database/sql"
 	proto "github.com/Nariett/go-chat/Proto"
@@ -47,7 +47,7 @@ func (c *ChatServer) JoinChat(user *proto.User, stream proto.ChatService_JoinCha
 
 func (c *ChatServer) LeaveChat(_ context.Context, user *proto.User) (*proto.ServerResponse, error) {
 	c.mu.Lock()
-	err := database.UpdateLastActivity(c.db, user)
+	err := storage.UpdateLastActivity(c.db, user)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func (c *ChatServer) GetActiveUsers(_ context.Context, _ *proto.Empty) (*proto.U
 }
 
 func (c *ChatServer) GetUsers(_ context.Context, user *proto.User) (*proto.Users, error) {
-	users, err := database.GetUsers(c.db, user)
+	users, err := storage.GetUsers(c.db, user)
 	if err != nil {
 		log.Fatal("Ошибка получения данных")
 	}
@@ -80,12 +80,21 @@ func (c *ChatServer) GetUsers(_ context.Context, user *proto.User) (*proto.Users
 }
 
 func (c *ChatServer) GetUnreadMessages(_ context.Context, user *proto.User) (*proto.UnreadMessages, error) {
-	unreadMessages, err := database.GetUnreadMessages(c.db, user)
+	unreadMessages, err := storage.GetUnreadMessages(c.db, user)
 	if err != nil {
-		log.Fatal("Ошибка получения данных")
+		log.Fatal("Ошибка получения непрочитанных сообщений")
 	}
 	return unreadMessages, nil
 }
+
+func (c *ChatServer) GetUsersActivityDates(_ context.Context, empty *proto.Empty) (*proto.UserActivityDates, error) {
+	userActivityDates, err := storage.GetUsersActivityDates(c.db, empty)
+	if err != nil {
+		log.Fatal("Ошибка получения последней активности пользователей")
+	}
+	return userActivityDates, nil
+}
+
 func (c *ChatServer) SendMessage(_ context.Context, msg *proto.UserMessage) (*proto.Empty, error) {
 	go func() {
 		c.mu.Lock()
@@ -95,7 +104,7 @@ func (c *ChatServer) SendMessage(_ context.Context, msg *proto.UserMessage) (*pr
 			ch <- *msg
 		}
 
-		err := database.InsertMessage(c.db, msg)
+		err := storage.InsertMessage(c.db, msg)
 		if err != nil {
 			log.Fatal("Ошибка записи сообщения:", err)
 		}
@@ -107,7 +116,7 @@ func (c *ChatServer) RegUser(ctx context.Context, user *proto.UserData) (*proto.
 	resultChan := make(chan *proto.ServerResponse)
 	errorChan := make(chan error)
 	go func() {
-		response, err := database.RegUser(c.db, user)
+		response, err := storage.RegUser(c.db, user)
 		if err != nil {
 			errorChan <- err
 			return
@@ -130,7 +139,7 @@ func (c *ChatServer) AuthUser(ctx context.Context, user *proto.UserData) (*proto
 	resultChan := make(chan *proto.ServerResponse)
 	errorChan := make(chan error)
 	go func() {
-		response, err := database.AuthUser(c.db, user)
+		response, err := storage.AuthUser(c.db, user)
 		if err != nil {
 			errorChan <- err
 			return

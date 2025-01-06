@@ -2,16 +2,16 @@ package chat
 
 import (
 	"context"
-
 	proto "github.com/Nariett/go-chat/Proto"
 )
 
 type ChatRepository struct {
-	client proto.ChatServiceClient
+	client          proto.ChatServiceClient
+	CurrentChatUser string
 }
 
 func NewChatRepository(client proto.ChatServiceClient) *ChatRepository {
-	return &ChatRepository{client: client}
+	return &ChatRepository{client: client, CurrentChatUser: ""}
 }
 
 func (r *ChatRepository) AuthUser(name, password string) (*proto.ServerResponse, error) {

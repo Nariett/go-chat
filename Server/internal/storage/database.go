@@ -1,8 +1,9 @@
-package database
+package storage
 
 import (
 	"database/sql"
 	"errors"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
 	"time"
 
@@ -193,7 +194,7 @@ func GetUnreadMessages(db *sql.DB, user *proto.User) (*proto.UnreadMessages, err
 		log.Printf("Ошибка выполнения запроса: %v", err)
 		return &proto.UnreadMessages{Messages: nil}, err
 	}
-	rows, err := db.Query("SELECT u.name, COUNT(m.id) FROM users u LEFT JOIN messages m ON u.id = m.sender_id AND m.recipient_id = $1 GROUP BY u.id", 1)
+	rows, err := db.Query("SELECT u.name, COUNT(m.id) FROM users u LEFT JOIN messages m ON u.id = m.sender_id AND m.recipient_id = $1 GROUP BY u.id", receiverId)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -219,4 +220,32 @@ func GetUnreadMessages(db *sql.DB, user *proto.User) (*proto.UnreadMessages, err
 		log.Fatal("Ошибка обработки строки")
 	}
 	return UnreadMessages, nil
+}
+
+func GetUsersActivityDates(db *sql.DB, _ *proto.Empty) (*proto.UserActivityDates, error) {
+	rows, err := db.Query("SELECT users.name, date FROM public.activity JOIN users on users.id = activity.idUser")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func(rows *sql.Rows) {
+		if err != nil {
+			log.Fatal("Ошибка")
+		}
+	}(rows)
+	userActivityDates := &proto.UserActivityDates{
+		ActivityDate: make(map[string]*timestamppb.Timestamp),
+	}
+	for rows.Next() {
+		var username string
+		var readAt time.Time
+		if err := rows.Scan(&username, &readAt); err != nil {
+			log.Fatal("Ошибка чтения строки")
+		}
+		timestamp := timestamppb.New(readAt)
+		userActivityDates.ActivityDate[username] = timestamp
+	}
+	if err := rows.Err(); err != nil {
+		log.Fatal("Ошибка обработки строки")
+	}
+	return userActivityDates, nil
 }

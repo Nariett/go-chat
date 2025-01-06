@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -19,6 +20,9 @@ func (r *ChatRepository) GetUsers(name string) (*proto.Users, error) {
 }
 func (r *ChatRepository) GetUnreadMessages(name string) (*proto.UnreadMessages, error) {
 	return r.client.GetUnreadMessages(context.Background(), &proto.User{Name: name})
+}
+func (r *ChatRepository) GetUsersActivityDates() (*proto.UserActivityDates, error) {
+	return r.client.GetUsersActivityDates(context.Background(), &proto.Empty{})
 }
 func (r *ChatRepository) JoinChat(name string) (proto.ChatService_JoinChatClient, error) {
 	return r.client.JoinChat(context.Background(), &proto.User{Name: name})
@@ -47,7 +51,9 @@ func (r *ChatRepository) ListenChat(stream proto.ChatService_JoinChatClient) {
 		if err != nil {
 			log.Fatalf("Ошибка получения сообщения: %v", err)
 		}
-		fmt.Printf("Новое сообщение от %s: %s\n", msg.Sender, msg.Content)
+		if msg.Sender == r.CurrentChatUser {
+			fmt.Printf("[%s]: %s\n", msg.Sender, msg.Content)
+		}
 	}
 }
 
@@ -66,19 +72,26 @@ func (r *ChatRepository) GetOnlineUsersWithMessageCount(name string) []string {
 	if err != nil {
 		log.Fatalf("Ошибка получения списка полученных сообщений: %v", err)
 	}
-	fmt.Println(messageCount.Messages)
+
+	usersActivityDates, err := r.GetUsersActivityDates()
+	if err != nil {
+		log.Fatalf("Ошибка получения списка последней активности пользователей: %v", err)
+	}
 	var allUsers []string
 
 	for _, user := range users.Usernames {
 		count := messageCount.Messages[user]
+		activityTime := usersActivityDates.ActivityDate[user].AsTime()
+		formattedTime := activityTime.Format("15:04:05 02.01.2006") + " - последняя активность"
 		status := ""
 		if Contains(activeUsers, user) {
 			status = " *"
+			formattedTime = ""
 		}
 		if count > 0 {
 			allUsers = append(allUsers, fmt.Sprintf("%s (%d)%s", user, count, status))
 		} else {
-			allUsers = append(allUsers, fmt.Sprintf("%s%s", user, status))
+			allUsers = append(allUsers, fmt.Sprintf("%s%s\t%s", user, status, formattedTime))
 		}
 	}
 
@@ -158,6 +171,14 @@ func ExitChat(client *ChatRepository, name string) {
 func Contains(users *proto.Users, username string) bool {
 	for _, u := range users.Usernames {
 		if u == username {
+			return true
+		}
+	}
+	return false
+}
+func ArrayContainsSubstring(stringArray []string, stringCheck string) bool {
+	for _, value := range stringArray {
+		if strings.Contains(value, stringCheck) {
 			return true
 		}
 	}
