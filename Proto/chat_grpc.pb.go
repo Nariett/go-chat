@@ -19,16 +19,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChatService_RegUser_FullMethodName               = "/chat.ChatService/RegUser"
-	ChatService_AuthUser_FullMethodName              = "/chat.ChatService/AuthUser"
-	ChatService_JoinChat_FullMethodName              = "/chat.ChatService/JoinChat"
-	ChatService_LeaveChat_FullMethodName             = "/chat.ChatService/LeaveChat"
-	ChatService_GetUsers_FullMethodName              = "/chat.ChatService/GetUsers"
-	ChatService_GetActiveUsers_FullMethodName        = "/chat.ChatService/GetActiveUsers"
-	ChatService_GetUsersActivityDates_FullMethodName = "/chat.ChatService/GetUsersActivityDates"
-	ChatService_GetUnreadMessages_FullMethodName     = "/chat.ChatService/GetUnreadMessages"
-	ChatService_SendMessage_FullMethodName           = "/chat.ChatService/SendMessage"
-	ChatService_ReadMessage_FullMethodName           = "/chat.ChatService/ReadMessage"
+	ChatService_RegUser_FullMethodName                   = "/chat.ChatService/RegUser"
+	ChatService_AuthUser_FullMethodName                  = "/chat.ChatService/AuthUser"
+	ChatService_JoinChat_FullMethodName                  = "/chat.ChatService/JoinChat"
+	ChatService_LeaveChat_FullMethodName                 = "/chat.ChatService/LeaveChat"
+	ChatService_GetUsers_FullMethodName                  = "/chat.ChatService/GetUsers"
+	ChatService_GetActiveUsers_FullMethodName            = "/chat.ChatService/GetActiveUsers"
+	ChatService_GetUsersActivityDates_FullMethodName     = "/chat.ChatService/GetUsersActivityDates"
+	ChatService_GetUnreadMessagesCounter_FullMethodName  = "/chat.ChatService/GetUnreadMessagesCounter"
+	ChatService_GetUnreadMessagesFromUser_FullMethodName = "/chat.ChatService/GetUnreadMessagesFromUser"
+	ChatService_SendMessage_FullMethodName               = "/chat.ChatService/SendMessage"
+	ChatService_ReadOneMessage_FullMethodName            = "/chat.ChatService/ReadOneMessage"
+	ChatService_ReadAllMessagesFrom_FullMethodName       = "/chat.ChatService/ReadAllMessagesFrom"
+	ChatService_ReadAllMessages_FullMethodName           = "/chat.ChatService/ReadAllMessages"
 )
 
 // ChatServiceClient is the client API for ChatService service.
@@ -42,9 +45,12 @@ type ChatServiceClient interface {
 	GetUsers(ctx context.Context, in *User, opts ...grpc.CallOption) (*Users, error)
 	GetActiveUsers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Users, error)
 	GetUsersActivityDates(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserActivityDates, error)
-	GetUnreadMessages(ctx context.Context, in *User, opts ...grpc.CallOption) (*UnreadMessages, error)
+	GetUnreadMessagesCounter(ctx context.Context, in *User, opts ...grpc.CallOption) (*UnreadMessages, error)
+	GetUnreadMessagesFromUser(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*Empty, error)
 	SendMessage(ctx context.Context, in *UserMessage, opts ...grpc.CallOption) (*Empty, error)
-	ReadMessage(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*ServerResponse, error)
+	ReadOneMessage(ctx context.Context, in *UserMessage, opts ...grpc.CallOption) (*Empty, error)
+	ReadAllMessagesFrom(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*ServerResponse, error)
+	ReadAllMessages(ctx context.Context, in *User, opts ...grpc.CallOption) (*ServerResponse, error)
 }
 
 type chatServiceClient struct {
@@ -134,10 +140,20 @@ func (c *chatServiceClient) GetUsersActivityDates(ctx context.Context, in *Empty
 	return out, nil
 }
 
-func (c *chatServiceClient) GetUnreadMessages(ctx context.Context, in *User, opts ...grpc.CallOption) (*UnreadMessages, error) {
+func (c *chatServiceClient) GetUnreadMessagesCounter(ctx context.Context, in *User, opts ...grpc.CallOption) (*UnreadMessages, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UnreadMessages)
-	err := c.cc.Invoke(ctx, ChatService_GetUnreadMessages_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ChatService_GetUnreadMessagesCounter_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) GetUnreadMessagesFromUser(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, ChatService_GetUnreadMessagesFromUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -154,10 +170,30 @@ func (c *chatServiceClient) SendMessage(ctx context.Context, in *UserMessage, op
 	return out, nil
 }
 
-func (c *chatServiceClient) ReadMessage(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*ServerResponse, error) {
+func (c *chatServiceClient) ReadOneMessage(ctx context.Context, in *UserMessage, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, ChatService_ReadOneMessage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) ReadAllMessagesFrom(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*ServerResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ServerResponse)
-	err := c.cc.Invoke(ctx, ChatService_ReadMessage_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ChatService_ReadAllMessagesFrom_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) ReadAllMessages(ctx context.Context, in *User, opts ...grpc.CallOption) (*ServerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ServerResponse)
+	err := c.cc.Invoke(ctx, ChatService_ReadAllMessages_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -175,9 +211,12 @@ type ChatServiceServer interface {
 	GetUsers(context.Context, *User) (*Users, error)
 	GetActiveUsers(context.Context, *Empty) (*Users, error)
 	GetUsersActivityDates(context.Context, *Empty) (*UserActivityDates, error)
-	GetUnreadMessages(context.Context, *User) (*UnreadMessages, error)
+	GetUnreadMessagesCounter(context.Context, *User) (*UnreadMessages, error)
+	GetUnreadMessagesFromUser(context.Context, *UnreadChat) (*Empty, error)
 	SendMessage(context.Context, *UserMessage) (*Empty, error)
-	ReadMessage(context.Context, *UnreadChat) (*ServerResponse, error)
+	ReadOneMessage(context.Context, *UserMessage) (*Empty, error)
+	ReadAllMessagesFrom(context.Context, *UnreadChat) (*ServerResponse, error)
+	ReadAllMessages(context.Context, *User) (*ServerResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -209,14 +248,23 @@ func (UnimplementedChatServiceServer) GetActiveUsers(context.Context, *Empty) (*
 func (UnimplementedChatServiceServer) GetUsersActivityDates(context.Context, *Empty) (*UserActivityDates, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUsersActivityDates not implemented")
 }
-func (UnimplementedChatServiceServer) GetUnreadMessages(context.Context, *User) (*UnreadMessages, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetUnreadMessages not implemented")
+func (UnimplementedChatServiceServer) GetUnreadMessagesCounter(context.Context, *User) (*UnreadMessages, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUnreadMessagesCounter not implemented")
+}
+func (UnimplementedChatServiceServer) GetUnreadMessagesFromUser(context.Context, *UnreadChat) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUnreadMessagesFromUser not implemented")
 }
 func (UnimplementedChatServiceServer) SendMessage(context.Context, *UserMessage) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
 }
-func (UnimplementedChatServiceServer) ReadMessage(context.Context, *UnreadChat) (*ServerResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReadMessage not implemented")
+func (UnimplementedChatServiceServer) ReadOneMessage(context.Context, *UserMessage) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadOneMessage not implemented")
+}
+func (UnimplementedChatServiceServer) ReadAllMessagesFrom(context.Context, *UnreadChat) (*ServerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadAllMessagesFrom not implemented")
+}
+func (UnimplementedChatServiceServer) ReadAllMessages(context.Context, *User) (*ServerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadAllMessages not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
@@ -358,20 +406,38 @@ func _ChatService_GetUsersActivityDates_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChatService_GetUnreadMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ChatService_GetUnreadMessagesCounter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(User)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChatServiceServer).GetUnreadMessages(ctx, in)
+		return srv.(ChatServiceServer).GetUnreadMessagesCounter(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ChatService_GetUnreadMessages_FullMethodName,
+		FullMethod: ChatService_GetUnreadMessagesCounter_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).GetUnreadMessages(ctx, req.(*User))
+		return srv.(ChatServiceServer).GetUnreadMessagesCounter(ctx, req.(*User))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_GetUnreadMessagesFromUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnreadChat)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).GetUnreadMessagesFromUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_GetUnreadMessagesFromUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).GetUnreadMessagesFromUser(ctx, req.(*UnreadChat))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -394,20 +460,56 @@ func _ChatService_SendMessage_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChatService_ReadMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ChatService_ReadOneMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).ReadOneMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_ReadOneMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).ReadOneMessage(ctx, req.(*UserMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_ReadAllMessagesFrom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UnreadChat)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChatServiceServer).ReadMessage(ctx, in)
+		return srv.(ChatServiceServer).ReadAllMessagesFrom(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ChatService_ReadMessage_FullMethodName,
+		FullMethod: ChatService_ReadAllMessagesFrom_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).ReadMessage(ctx, req.(*UnreadChat))
+		return srv.(ChatServiceServer).ReadAllMessagesFrom(ctx, req.(*UnreadChat))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_ReadAllMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(User)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).ReadAllMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_ReadAllMessages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).ReadAllMessages(ctx, req.(*User))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -444,16 +546,28 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ChatService_GetUsersActivityDates_Handler,
 		},
 		{
-			MethodName: "GetUnreadMessages",
-			Handler:    _ChatService_GetUnreadMessages_Handler,
+			MethodName: "GetUnreadMessagesCounter",
+			Handler:    _ChatService_GetUnreadMessagesCounter_Handler,
+		},
+		{
+			MethodName: "GetUnreadMessagesFromUser",
+			Handler:    _ChatService_GetUnreadMessagesFromUser_Handler,
 		},
 		{
 			MethodName: "SendMessage",
 			Handler:    _ChatService_SendMessage_Handler,
 		},
 		{
-			MethodName: "ReadMessage",
-			Handler:    _ChatService_ReadMessage_Handler,
+			MethodName: "ReadOneMessage",
+			Handler:    _ChatService_ReadOneMessage_Handler,
+		},
+		{
+			MethodName: "ReadAllMessagesFrom",
+			Handler:    _ChatService_ReadAllMessagesFrom_Handler,
+		},
+		{
+			MethodName: "ReadAllMessages",
+			Handler:    _ChatService_ReadAllMessages_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
