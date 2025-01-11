@@ -7,17 +7,20 @@ option go_package = "./Proto";
 import "google/protobuf/timestamp.proto";
 
 service ChatService{
+    //chatLogic
     rpc RegUser(UserData) returns (ServerResponse);
     rpc AuthUser(UserData) returns (ServerResponse);
     rpc JoinChat(User) returns (stream UserMessage);
     rpc LeaveChat(User) returns (ServerResponse);
+    rpc SendMessage (UserMessage) returns (Empty);
+    //Users
     rpc GetUsers(Empty) returns (Users);
     rpc GetActiveUsers(Empty) returns (Users);
     rpc GetUsersActivityDates(Empty) returns (UserActivityDates);
+    rpc GetUserId (User) returns (UserId);
+    //Messages
     rpc GetUnreadMessagesCounter (UserId) returns (UnreadMessages);
     rpc GetUnreadMessagesFromUser(UnreadChat) returns (Empty);
-    rpc GetUserId (User) returns (UserId);
-    rpc SendMessage (UserMessage) returns (Empty);
     rpc ReadOneMessage (UserMessage) returns (Empty);
     rpc ReadAllMessagesFrom (UnreadChat) returns (ServerResponse);
     rpc ReadAllMessages (UserId) returns (ServerResponse);
