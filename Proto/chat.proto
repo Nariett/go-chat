@@ -11,33 +11,36 @@ service ChatService{
     rpc AuthUser(UserData) returns (ServerResponse);
     rpc JoinChat(User) returns (stream UserMessage);
     rpc LeaveChat(User) returns (ServerResponse);
-    rpc GetUsers(User) returns (Users);
+    rpc GetUsers(Empty) returns (Users);
     rpc GetActiveUsers(Empty) returns (Users);
     rpc GetUsersActivityDates(Empty) returns (UserActivityDates);
-    rpc GetUnreadMessagesCounter (User) returns (UnreadMessages);
+    rpc GetUnreadMessagesCounter (UserId) returns (UnreadMessages);
     rpc GetUnreadMessagesFromUser(UnreadChat) returns (Empty);
+    rpc GetUserId (User) returns (UserId);
     rpc SendMessage (UserMessage) returns (Empty);
     rpc ReadOneMessage (UserMessage) returns (Empty);
     rpc ReadAllMessagesFrom (UnreadChat) returns (ServerResponse);
-    rpc ReadAllMessages (User) returns (ServerResponse);
+    rpc ReadAllMessages (UserId) returns (ServerResponse);
 }
-
+message UserId{
+    int32 id = 1;
+}
 message User{
     string name = 1;
+}
+message UserData{
+    string name = 1;
+    string password = 2;
 }
 message Users{
     repeated string usernames = 1;
 }
 message UnreadChat{
-    string recipient = 1;
-    string sender = 2;
+    int32 recipient = 1;
+    int32 sender = 2;
 }
 message UnreadMessages{
     map<string, int32>  messages = 1;
-}
-message UserData{
-    string name = 1;
-    string password = 2;
 }
 message UserActivityDates{
     map<string, google.protobuf.Timestamp> activity_date = 1;
@@ -47,8 +50,8 @@ message ServerResponse{
     string message = 2;
 }
 message UserMessage{
-    string sender = 1;
-    string recipient = 2;
+    int32 sender = 1;
+    int32 recipient = 2;
     string content = 3;
     google.protobuf.Timestamp sent_at = 4;
     optional google.protobuf.Timestamp read_at = 5;
