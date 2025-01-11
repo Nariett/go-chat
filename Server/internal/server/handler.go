@@ -23,7 +23,7 @@ func newChatServer(db *sql.DB) *ChatServer {
 		db:    db,
 	}
 }
-func (c *ChatServer) JoinChat(user *proto.User, stream proto.ChatService_JoinChatServer) error {
+func (c *ChatServer) JoinChat(user *proto.UserName, stream proto.ChatService_JoinChatServer) error {
 	c.mu.Lock()
 	msgChan := make(chan proto.UserMessage, 10)
 	c.users[user.Name] = msgChan
@@ -45,9 +45,13 @@ func (c *ChatServer) JoinChat(user *proto.User, stream proto.ChatService_JoinCha
 	return nil
 }
 
-func (c *ChatServer) LeaveChat(_ context.Context, user *proto.User) (*proto.ServerResponse, error) {
+func (c *ChatServer) LeaveChat(_ context.Context, user *proto.UserName) (*proto.ServerResponse, error) {
 	c.mu.Lock()
-	err := storage.UpdateLastActivity(c.db, user)
+	userId, err := storage.GetUserId(c.db, user.Name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = storage.UpdateLastActivity(c.db, userId)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,16 +75,22 @@ func (c *ChatServer) GetActiveUsers(_ context.Context, _ *proto.Empty) (*proto.U
 	return &proto.Users{Usernames: activeUsers}, nil
 }
 
-func (c *ChatServer) GetUsers(_ context.Context, user *proto.User) (*proto.Users, error) {
-	users, err := storage.GetUsers(c.db, user)
+func (c *ChatServer) GetUsers(_ context.Context, _ *proto.Empty) (*proto.Users, error) {
+	users, err := storage.GetUsers(c.db)
 	if err != nil {
 		log.Fatal("Ошибка получения данных")
 	}
 	return &proto.Users{Usernames: users}, nil
 }
-
-func (c *ChatServer) GetUnreadMessages(_ context.Context, user *proto.User) (*proto.UnreadMessages, error) {
-	unreadMessages, err := storage.GetUnreadMessages(c.db, user)
+func (c *ChatServer) GetUserId(_ context.Context, user *proto.UserName) (*proto.UserId, error) {
+	userId, err := storage.GetUserId(c.db, user.Name)
+	if err != nil {
+		log.Fatalf("Ошибка получения id %v", err)
+	}
+	return &proto.UserId{Id: userId}, err
+}
+func (c *ChatServer) GetUnreadMessagesCounter(_ context.Context, userId *proto.UserId) (*proto.UnreadMessages, error) {
+	unreadMessages, err := storage.GetUnreadMessagesCounter(c.db, userId)
 	if err != nil {
 		log.Fatal("Ошибка получения непрочитанных сообщений")
 	}
@@ -95,7 +105,41 @@ func (c *ChatServer) GetUsersActivityDates(_ context.Context, empty *proto.Empty
 	return userActivityDates, nil
 }
 
-func (c *ChatServer) SendMessage(_ context.Context, msg *proto.UserMessage) (*proto.Empty, error) {
+func (c *ChatServer) ReadOneMessage(_ context.Context, msg *proto.UserMessage) (*proto.Empty, error) {
+	go func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		err := storage.ReadOneMessage(c.db, msg)
+		if err != nil {
+			log.Fatalf("Ошибка чтения сообщения %v", err)
+		}
+	}()
+	return &proto.Empty{}, nil
+}
+func (c *ChatServer) ReadAllMessages(_ context.Context, id *proto.UserId) (*proto.ServerResponse, error) {
+	go func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		err := storage.RealAllMessages(c.db, id)
+		if err != nil {
+			log.Fatalf("Ошибка чтения всех сообщения %v", err)
+		}
+	}()
+	return &proto.ServerResponse{Success: true, Message: "Все сообщения прочтены."}, nil
+}
+func (c *ChatServer) InsertMessage(_ context.Context, msg *proto.UserMessage) (*proto.Empty, error) {
+	go func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		err := storage.InsertMessage(c.db, msg)
+		if err != nil {
+			log.Fatalf("Ошибка добавления сообщения %v", err)
+		}
+	}()
+	return &proto.Empty{}, nil
+}
+
+func (c *ChatServer) SendMessage(ctx context.Context, msg *proto.UserMessage) (*proto.Empty, error) {
 	go func() {
 		c.mu.Lock()
 		defer c.mu.Unlock()
@@ -104,7 +148,7 @@ func (c *ChatServer) SendMessage(_ context.Context, msg *proto.UserMessage) (*pr
 			ch <- *msg
 		}
 
-		err := storage.InsertMessage(c.db, msg)
+		_, err := c.InsertMessage(ctx, msg)
 		if err != nil {
 			log.Fatal("Ошибка записи сообщения:", err)
 		}

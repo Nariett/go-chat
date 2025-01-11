@@ -9,35 +9,47 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 )
 
 func (r *ChatRepository) GetActiveUsers() (*proto.Users, error) {
 	return r.client.GetActiveUsers(context.Background(), &proto.Empty{})
 }
-func (r *ChatRepository) GetUsers(name string) (*proto.Users, error) {
-	return r.client.GetUsers(context.Background(), &proto.User{Name: name})
+func (r *ChatRepository) GetUsers() (*proto.Users, error) {
+	return r.client.GetUsers(context.Background(), &proto.Empty{})
 }
-func (r *ChatRepository) GetUnreadMessages(name string) (*proto.UnreadMessages, error) {
-	return r.client.GetUnreadMessages(context.Background(), &proto.User{Name: name})
+func (r *ChatRepository) GetUserId(name string) (int32, error) {
+	idUser, err := r.client.GetUserId(context.Background(), &proto.UserName{Name: name})
+	if err != nil {
+		return -1, err
+	}
+	return idUser.Id, nil
+}
+func (r *ChatRepository) GetUnreadMessagesCounter(id int32) (*proto.UnreadMessages, error) {
+	return r.client.GetUnreadMessagesCounter(context.Background(), &proto.UserId{Id: id})
 }
 func (r *ChatRepository) GetUsersActivityDates() (*proto.UserActivityDates, error) {
 	return r.client.GetUsersActivityDates(context.Background(), &proto.Empty{})
 }
 func (r *ChatRepository) JoinChat(name string) (proto.ChatService_JoinChatClient, error) {
-	return r.client.JoinChat(context.Background(), &proto.User{Name: name})
+	return r.client.JoinChat(context.Background(), &proto.UserName{Name: name})
 }
 func (r *ChatRepository) LeaveChat(name string) (*proto.ServerResponse, error) {
-	return r.client.LeaveChat(context.Background(), &proto.User{Name: name})
+	return r.client.LeaveChat(context.Background(), &proto.UserName{Name: name})
+}
+func (r *ChatRepository) ReadAllMessages(id int32) (*proto.ServerResponse, error) {
+	return r.client.ReadAllMessages(context.Background(), &proto.UserId{Id: id})
 }
 
-func (r *ChatRepository) SendMessage(sender, recipient, content string) (*proto.Empty, error) {
+func (r *ChatRepository) SendMessage(sender string, senderId int32, recipient string, recipientId int32, content string) (*proto.Empty, error) {
 	message := &proto.UserMessage{
-		Sender:    sender,
-		Recipient: recipient,
-		Content:   content,
-		SentAt:    timestamppb.New(time.Now()),
+		Sender:      sender,
+		SenderId:    senderId,
+		Recipient:   recipient,
+		RecipientId: recipientId,
+		Content:     content,
+		SentAt:      timestamppb.Now(),
 	}
+	log.Println("Во время отправки ", message.SentAt.AsTime(), message.Content)
 	response, err := r.client.SendMessage(context.Background(), message)
 	if err != nil {
 		return nil, err
@@ -53,22 +65,26 @@ func (r *ChatRepository) ListenChat(stream proto.ChatService_JoinChatClient) {
 		}
 		if msg.Sender == r.CurrentChatUser {
 			fmt.Printf("[%s]: %s\n", msg.Sender, msg.Content)
+			_, err = r.client.ReadOneMessage(context.Background(), msg)
+			if err != nil {
+				log.Fatalf("Ошибка обновления данных: %v", err)
+			}
 		}
 	}
 }
 
-func (r *ChatRepository) GetOnlineUsersWithMessageCount(name string) []string {
+func (r *ChatRepository) GetOnlineUsersWithMessageCount(id int32, name string) []string {
 	activeUsers, err := r.GetActiveUsers()
 	if err != nil {
 		log.Fatalf("Ошибка получения списка активных пользователй: %v", err)
 	}
 
-	users, err := r.GetUsers(name)
+	users, err := r.GetUsers()
 	if err != nil {
 		log.Fatalf("Ошибка получения списка пользователй: %v", err)
 	}
 
-	messageCount, err := r.GetUnreadMessages(name)
+	messageCount, err := r.GetUnreadMessagesCounter(id)
 	if err != nil {
 		log.Fatalf("Ошибка получения списка полученных сообщений: %v", err)
 	}
@@ -80,18 +96,18 @@ func (r *ChatRepository) GetOnlineUsersWithMessageCount(name string) []string {
 	var allUsers []string
 
 	for _, user := range users.Usernames {
-		count := messageCount.Messages[user]
-		activityTime := usersActivityDates.ActivityDate[user].AsTime()
-		formattedTime := activityTime.Format("15:04:05 02.01.2006") + " - последняя активность"
-		status := ""
-		if Contains(activeUsers, user) {
-			status = " *"
-			formattedTime = ""
-		}
-		if count > 0 {
-			allUsers = append(allUsers, fmt.Sprintf("%s (%d)%s", user, count, status))
-		} else {
-			allUsers = append(allUsers, fmt.Sprintf("%s%s\t%s", user, status, formattedTime))
+		if user != name {
+			count := messageCount.Messages[user]
+			activityTime := usersActivityDates.ActivityDate[user].AsTime()
+			status := activityTime.Format("15:04:05 02.01.2006") + " - последняя активность"
+			if Contains(activeUsers, user) {
+				status = "В сети"
+			}
+			if count > 0 {
+				allUsers = append(allUsers, fmt.Sprintf("%s (%d)\t%s", user, count, status))
+			} else {
+				allUsers = append(allUsers, fmt.Sprintf("%s\t\t%s", user, status))
+			}
 		}
 	}
 
@@ -104,10 +120,10 @@ func InitUser(client *ChatRepository) string {
 		password string
 		flag     bool = false
 	)
-	scanner := bufio.NewScanner(os.Stdin) // Создаём сканер для ввода
+	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Println("1 - Войти в чат\n2 - Зарегистрироваться в чате\n3 - Выйти из чата")
-		scanner.Scan() // Читаем ввод как строку
+		scanner.Scan()
 		value := scanner.Text()
 		switch value {
 		case "1":
@@ -178,9 +194,33 @@ func Contains(users *proto.Users, username string) bool {
 }
 func ArrayContainsSubstring(stringArray []string, stringCheck string) bool {
 	for _, value := range stringArray {
-		if strings.Contains(value, stringCheck) {
+		name := strings.Split(value, "\t")[0]
+		if strings.Contains(name, stringCheck) {
 			return true
 		}
 	}
 	return false
+}
+
+func ChatSession(client *ChatRepository, name string, userId int32, recipient string, recipientId int32) error {
+	fmt.Println("Открыт чат с пользователем :", recipient, "для выхода в чаты напишите '/Чаты'")
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		scanner.Scan()
+		message := scanner.Text()
+		if message == "/Чаты" {
+			fmt.Println("Вы перешли в чаты")
+			client.CurrentChatUser = ""
+			break
+		}
+		if len(recipient) != 0 && len(message) != 0 {
+			_, err := client.SendMessage(name, userId, recipient, recipientId, message)
+			if err != nil {
+				log.Printf("Ошибка отправки сообщения: %v", err)
+			}
+		} else {
+			fmt.Println("Сообщение не отправлено. Введите имя пользователя и сообщение.")
+		}
+	}
+	return nil
 }

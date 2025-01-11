@@ -28,21 +28,29 @@ func main() {
 	}()
 
 	client := chat.NewChatRepository(proto.NewChatServiceClient(conn))
-
 	name := chat.InitUser(client)
 
 	stream, err := client.JoinChat(name)
 	if err != nil {
 		log.Fatalf("Ошибка подключения к чату: %v", err)
 	}
+
+	idUser, err := client.GetUserId(name)
+	if err != nil {
+		log.Fatalf("Ошибка получения id пользователя: %v", err)
+	}
 	go client.ListenChat(stream)
 	for {
 		fmt.Println("Для выхода из приложения введите '/Выход'")
-		fmt.Println("Список пользователей '*' - в сети, '(x)' - число новых сообщений")
-		onlineUser := client.GetOnlineUsersWithMessageCount(name)
+		fmt.Println("Для выхода из приложения введите '/Прочитать все'")
+		fmt.Println("Список пользователей '(x)' - число новых сообщений")
+
+		onlineUser := client.GetOnlineUsersWithMessageCount(idUser, name)
 		for _, user := range onlineUser {
 			fmt.Println(user)
 		}
+
+		restart := false
 		var recipient string
 		scanner := bufio.NewScanner(os.Stdin)
 		for {
@@ -55,29 +63,30 @@ func main() {
 				chat.ExitChat(client, name)
 				fmt.Println("Вы вышли из чата")
 				os.Exit(0)
+			} else if recipient == "/Прочитать все" {
+				response, err := client.ReadAllMessages(idUser)
+				if err != nil {
+					log.Fatalln("Ошибка чтения сообщений")
+				}
+				fmt.Println(response.Message)
+				restart = true
+				break
 			} else {
 				fmt.Println("Введите корректное имя и повторите попытку")
 				continue
 			}
 		}
+		if restart {
+			continue
+		}
+		recipientId, err := client.GetUserId(recipient)
+		if err != nil {
+			log.Fatalf("Ошибка получения id получателя: %v", err)
+		}
 		client.CurrentChatUser = recipient
-		fmt.Println("Открыт чат с пользователем :", recipient, "для выхода в чаты напишите '/Чаты'")
-		for {
-			scanner.Scan()
-			message := scanner.Text()
-			if message == "/Чаты" {
-				fmt.Println("Вы перешли в чаты")
-				client.CurrentChatUser = ""
-				break
-			}
-			if len(recipient) != 0 && len(message) != 0 {
-				_, err := client.SendMessage(name, recipient, message)
-				if err != nil {
-					log.Printf("Ошибка отправки сообщения: %v", err)
-				}
-			} else {
-				fmt.Println("Сообщение не отправлено. Введите имя пользователя и сообщение.")
-			}
+		err = chat.ChatSession(client, name, idUser, recipient, recipientId)
+		if err != nil {
+			log.Fatalf("Ошибка чата с пользователем: %v", err)
 		}
 	}
 }

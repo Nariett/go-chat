@@ -124,21 +124,7 @@ func InsertMessage(db *sql.DB, message *proto.UserMessage) error {
 		log.Printf("Ошибка начала транзакции %v\n", err)
 		return err
 	}
-	var senderId, recipientId int
-	err = tx.QueryRow("SELECT id FROM users WHERE name = $1", message.Sender).Scan(&senderId)
-	if err != nil {
-		_ = tx.Rollback()
-		log.Printf("Ошибка выполнения запроса: %v", err)
-		return err
-	}
-	err = tx.QueryRow("SELECT id FROM users WHERE name = $1", message.Recipient).Scan(&recipientId)
-	if err != nil {
-		_ = tx.Rollback()
-		log.Printf("Ошибка выполнения запроса: %v", err)
-		return err
-	}
-
-	_, err = tx.Exec("INSERT INTO messages (sender_id, recipient_id, content, sent_at) VALUES ($1, $2, $3, $4)", senderId, recipientId, message.Content, message.SentAt.AsTime())
+	_, err = tx.Exec("INSERT INTO messages (sender_id, recipient_id, content, sent_at) VALUES ($1, $2, $3, $4)", message.SenderId, message.RecipientId, message.Content, message.SentAt.AsTime())
 	if err != nil {
 		_ = tx.Rollback()
 		log.Printf("Ошибка выполнения запроса: %v", err)
@@ -152,17 +138,17 @@ func InsertMessage(db *sql.DB, message *proto.UserMessage) error {
 	return nil
 }
 
-func UpdateLastActivity(db *sql.DB, user *proto.User) error {
+func UpdateLastActivity(db *sql.DB, id int32) error {
 	location, err := time.LoadLocation("Europe/Moscow")
-	_, err = db.Exec("UPDATE activity SET date = $1 WHERE idUser = (SELECT id FROM users WHERE name = $2)", time.Now().In(location), user.Name)
+	_, err = db.Exec("UPDATE activity SET date = $1 WHERE idUser = $2", time.Now().In(location), id)
 	if err != nil {
 		log.Fatalf("Ошибка обновления данных %v\n", err)
 	}
 	return nil
 }
 
-func GetUsers(db *sql.DB, user *proto.User) ([]string, error) {
-	rows, err := db.Query("SELECT name FROM users WHERE name != $1", user.Name)
+func GetUsers(db *sql.DB) ([]string, error) {
+	rows, err := db.Query("SELECT name FROM users")
 	if err != nil {
 		log.Fatalf("Ошибка получения данных %v\n", err)
 	}
@@ -186,17 +172,18 @@ func GetUsers(db *sql.DB, user *proto.User) ([]string, error) {
 	}
 	return usernames, nil
 }
-
-func GetUnreadMessages(db *sql.DB, user *proto.User) (*proto.UnreadMessages, error) {
-	var receiverId int
-	err := db.QueryRow("SELECT id FROM users WHERE name = $1", user.Name).Scan(&receiverId)
+func GetUserId(db *sql.DB, name string) (int32, error) {
+	var id int32
+	err := db.QueryRow("SELECT id FROM users WHERE name = $1", name).Scan(&id)
 	if err != nil {
-		log.Printf("Ошибка выполнения запроса: %v", err)
-		return &proto.UnreadMessages{Messages: nil}, err
+		log.Fatalf("ошибка получения id из базы данных: %v", err)
 	}
-	rows, err := db.Query("SELECT u.name, COUNT(m.id) FROM users u LEFT JOIN messages m ON u.id = m.sender_id AND m.recipient_id = $1 GROUP BY u.id", receiverId)
+	return id, nil
+}
+func GetUnreadMessagesCounter(db *sql.DB, id *proto.UserId) (*proto.UnreadMessages, error) {
+	rows, err := db.Query("SELECT u.name, COUNT(m.id) FROM users u LEFT JOIN messages m ON u.id = m.sender_id AND m.recipient_id = $1 AND m.read_at IS NULL GROUP BY u.id", id.Id)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Тут", err)
 	}
 	defer func(rows *sql.Rows) {
 		if err != nil {
@@ -248,4 +235,18 @@ func GetUsersActivityDates(db *sql.DB, _ *proto.Empty) (*proto.UserActivityDates
 		log.Fatal("Ошибка обработки строки")
 	}
 	return userActivityDates, nil
+}
+func ReadOneMessage(db *sql.DB, message *proto.UserMessage) error {
+	_, err := db.Exec("UPDATE messages SET read_at = $1 WHERE content = $2 AND sent_at = $3;", timestamppb.Now().AsTime(), message.Content, message.SentAt.AsTime())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func RealAllMessages(db *sql.DB, userId *proto.UserId) error {
+	_, err := db.Exec("UPDATE messages SET read_at = $1 WHERE recipient_id = $2", timestamppb.Now().AsTime(), userId.Id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

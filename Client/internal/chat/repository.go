@@ -6,6 +6,7 @@ import (
 )
 
 type ChatRepository struct {
+	IdUser          int32
 	client          proto.ChatServiceClient
 	CurrentChatUser string
 }
