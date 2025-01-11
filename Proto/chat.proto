@@ -7,7 +7,7 @@ option go_package = "./Proto";
 import "google/protobuf/timestamp.proto";
 
 service ChatService{
-    //chatLogic
+    //ChatLogic
     rpc RegUser(UserData) returns (ServerResponse);
     rpc AuthUser(UserData) returns (ServerResponse);
     rpc JoinChat(User) returns (stream UserMessage);
