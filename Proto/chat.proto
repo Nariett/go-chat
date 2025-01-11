@@ -53,10 +53,12 @@ message ServerResponse{
     string message = 2;
 }
 message UserMessage{
-    int32 sender = 1;
-    int32 recipient = 2;
-    string content = 3;
-    google.protobuf.Timestamp sent_at = 4;
-    optional google.protobuf.Timestamp read_at = 5;
+    string sender = 1;
+    int32 senderId = 2;
+    string recipient = 3;
+    int32 recipientId = 4;
+    string content = 5;
+    google.protobuf.Timestamp sent_at = 6;
+    optional google.protobuf.Timestamp read_at = 7;
 }
 message Empty{}
