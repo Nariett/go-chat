@@ -13,11 +13,13 @@ service ChatService{
     rpc JoinChat(UserName) returns (stream UserMessage);
     rpc LeaveChat(UserName) returns (ServerResponse);
     rpc SendMessage (UserMessage) returns (Empty);
+
     //Users
     rpc GetUsers(Empty) returns (Users);
     rpc GetActiveUsers(Empty) returns (Users);
     rpc GetUsersActivityDates(Empty) returns (UserActivityDates);
     rpc GetUserId (UserName) returns (UserId);
+
     //Messages
     rpc GetUnreadMessagesCounter (UserId) returns (UnreadMessages);
     rpc GetUnreadMessagesFromUser(UnreadChat) returns (Empty);
