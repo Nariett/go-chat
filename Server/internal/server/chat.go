@@ -1,7 +1,8 @@
 package server
 
 import (
-	"Server/internal/storage"
+	reposActivity "Server/internal/storage/repos/activity"
+	repos "Server/internal/storage/repos/user"
 	"context"
 	proto "github.com/Nariett/go-chat/Proto"
 	"log"
@@ -31,11 +32,11 @@ func (c *ChatServer) JoinChat(user *proto.UserName, stream proto.ChatService_Joi
 
 func (c *ChatServer) LeaveChat(_ context.Context, user *proto.UserName) (*proto.ServerResponse, error) {
 	c.mu.Lock()
-	userId, err := storage.GetUserId(c.db, user.Name)
+	userId, err := repos.GetUserId(c.db, user.Name)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = storage.UpdateLastActivity(c.db, userId)
+	err = reposActivity.UpdateLastActivity(c.db, userId)
 	if err != nil {
 		log.Fatal(err)
 	}
