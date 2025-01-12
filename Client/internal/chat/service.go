@@ -49,7 +49,6 @@ func (r *ChatRepository) SendMessage(sender string, senderId int32, recipient st
 		Content:     content,
 		SentAt:      timestamppb.Now(),
 	}
-	log.Println("Во время отправки ", message.SentAt.AsTime(), message.Content)
 	response, err := r.client.SendMessage(context.Background(), message)
 	if err != nil {
 		return nil, err
@@ -98,7 +97,7 @@ func (r *ChatRepository) GetOnlineUsersWithMessageCount(id int32, name string) [
 	for _, user := range users.Usernames {
 		if user != name {
 			count := messageCount.Messages[user]
-			activityTime := usersActivityDates.ActivityDate[user].AsTime()
+			activityTime := usersActivityDates.ActivityDate[user].AsTime().In(r.Location)
 			status := activityTime.Format("15:04:05 02.01.2006") + " - последняя активность"
 			if Contains(activeUsers, user) {
 				status = "В сети"

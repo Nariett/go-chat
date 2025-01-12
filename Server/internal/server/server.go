@@ -1,16 +1,28 @@
 package server
 
 import (
-	"database/sql"
+	proto "github.com/Nariett/go-chat/Proto"
+	"github.com/jmoiron/sqlx"
+	"google.golang.org/grpc"
 	"log"
 	"net"
-
-	proto "github.com/Nariett/go-chat/Proto"
-
-	"google.golang.org/grpc"
+	"sync"
 )
 
-func StartServer(listener net.Listener, db *sql.DB) {
+type ChatServer struct {
+	proto.UnimplementedChatServiceServer
+	mu    sync.Mutex
+	users map[string]chan proto.UserMessage
+	db    *sqlx.DB
+}
+
+func newChatServer(db *sqlx.DB) *ChatServer {
+	return &ChatServer{
+		users: make(map[string]chan proto.UserMessage),
+		db:    db,
+	}
+}
+func StartServer(listener net.Listener, db *sqlx.DB) {
 	server := grpc.NewServer()
 	proto.RegisterChatServiceServer(server, newChatServer(db))
 

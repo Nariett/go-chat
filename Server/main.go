@@ -3,7 +3,7 @@ package main
 import (
 	"Server/config"
 	"Server/internal/server"
-	"database/sql"
+	"github.com/jmoiron/sqlx"
 	"log"
 	"net"
 
@@ -17,7 +17,7 @@ func main() {
 
 	log.Printf("Строка подключения к бд: %s", connStr)
 
-	db, err := sql.Open("postgres", connStr)
+	db, err := sqlx.Open("postgres", connStr)
 	if err != nil {
 		log.Fatalf("Ошибка подключения к базе данных: %v", err)
 	}
