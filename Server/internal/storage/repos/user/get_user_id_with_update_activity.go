@@ -4,15 +4,14 @@ import (
 	"database/sql"
 	"errors"
 	proto "github.com/Nariett/go-chat/Proto"
-	"github.com/jmoiron/sqlx"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
 )
 
-func GetUserIdWithUpdateActivity(db *sqlx.DB, user *proto.UserData) (*proto.ServerResponse, error) {
+func (s *store) GetUserIdWithUpdateActivity(user *proto.UserData) (*proto.ServerResponse, error) {
 	log.Printf("Найти пользователя %s, %s", user.Name, user.Password)
 
-	tx, err := db.Beginx()
+	tx, err := s.db.Beginx()
 	if err != nil {
 		log.Fatalf("Ошибка начала транзакции %v\n", err)
 	}

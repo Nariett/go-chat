@@ -2,12 +2,11 @@ package message
 
 import (
 	proto "github.com/Nariett/go-chat/Proto"
-	"github.com/jmoiron/sqlx"
 	"log"
 )
 
-func InsertMessage(db *sqlx.DB, message *proto.UserMessage) error {
-	tx, err := db.Beginx()
+func (s *store) InsertMessage(message *proto.UserMessage) error {
+	tx, err := s.db.Beginx()
 	if err != nil {
 		log.Printf("Ошибка начала транзакции %v\n", err)
 		return err

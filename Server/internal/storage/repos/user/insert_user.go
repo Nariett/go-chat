@@ -2,13 +2,12 @@ package user
 
 import (
 	proto "github.com/Nariett/go-chat/Proto"
-	"github.com/jmoiron/sqlx"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
 )
 
-func InsertUser(db *sqlx.DB, user *proto.UserData) (*proto.ServerResponse, error) {
-	tx, err := db.Beginx()
+func (s *store) InsertUser(user *proto.UserData) (*proto.ServerResponse, error) {
+	tx, err := s.db.Beginx()
 	if err != nil {
 		return &proto.ServerResponse{
 			Success: false,
@@ -17,6 +16,7 @@ func InsertUser(db *sqlx.DB, user *proto.UserData) (*proto.ServerResponse, error
 	}
 
 	var existingUserId int32
+
 	checkQuery := `SELECT id FROM users WHERE name = $1`
 	err = tx.Get(&existingUserId, checkQuery, user.Name)
 	if err == nil {

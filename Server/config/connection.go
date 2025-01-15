@@ -19,30 +19,9 @@ type Config struct {
 	DBHost     string
 }
 
-func LoadConfig() *Config {
+func NewConfig() *Config {
 	if err := godotenv.Load(".env"); err != nil {
 		log.Fatalf("Ошибка загрузки файла .env: %v", err)
-	}
-
-	return &Config{
-		DBUser:     os.Getenv("DB_USER"),
-		DBPassword: os.Getenv("DB_PASSWORD"),
-		DBName:     os.Getenv("DB_NAME"),
-		DBSSLMode:  os.Getenv("DB_SSLMODE"),
-		Protocol:   os.Getenv("PROTOCOL"),
-		DBPort:     os.Getenv("DB_PORT"),
-		LPort:      os.Getenv("LPORT"),
-		DBHost:     os.Getenv("DB_HOST"),
-	}
-}
-
-func LoadConfigWithPath(envPath string) *Config {
-	if envPath == "" {
-		envPath = ".env"
-	}
-
-	if err := godotenv.Load(envPath); err != nil {
-		log.Fatalf("Ошибка загрузки файла %s: %v", envPath, err)
 	}
 
 	return &Config{

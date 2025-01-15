@@ -1,17 +1,16 @@
-package server
+package handler
 
 import (
-	repos "Server/internal/storage/repos/user"
 	"context"
 	proto "github.com/Nariett/go-chat/Proto"
 	"log"
 )
 
-func (c *ChatServer) RegUser(ctx context.Context, user *proto.UserData) (*proto.ServerResponse, error) {
+func (h *handler) RegUser(ctx context.Context, user *proto.UserData) (*proto.ServerResponse, error) {
 	resultChan := make(chan *proto.ServerResponse)
 	errorChan := make(chan error)
 	go func() {
-		response, err := repos.InsertUser(c.db, user)
+		response, err := h.user.InsertUser(user)
 		if err != nil {
 			errorChan <- err
 			return
@@ -30,11 +29,11 @@ func (c *ChatServer) RegUser(ctx context.Context, user *proto.UserData) (*proto.
 	}
 }
 
-func (c *ChatServer) AuthUser(ctx context.Context, user *proto.UserData) (*proto.ServerResponse, error) {
+func (h *handler) AuthUser(ctx context.Context, user *proto.UserData) (*proto.ServerResponse, error) {
 	resultChan := make(chan *proto.ServerResponse)
 	errorChan := make(chan error)
 	go func() {
-		response, err := repos.GetUserIdWithUpdateActivity(c.db, user)
+		response, err := h.user.GetUserIdWithUpdateActivity(user)
 		if err != nil {
 			errorChan <- err
 			return

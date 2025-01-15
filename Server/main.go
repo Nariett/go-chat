@@ -2,38 +2,59 @@ package main
 
 import (
 	"Server/config"
-	"Server/internal/server"
-	"github.com/jmoiron/sqlx"
+	"Server/internal/handler"
+	"Server/internal/storage"
+	"Server/internal/storage/repos/activity"
+	"Server/internal/storage/repos/message"
+	"Server/internal/storage/repos/user"
+	"context"
+	proto "github.com/Nariett/go-chat/Proto"
+	_ "github.com/lib/pq"
+	"go.uber.org/fx"
+	"google.golang.org/grpc"
 	"log"
 	"net"
-
-	_ "github.com/lib/pq"
 )
 
-func main() {
-	loadConfig := config.LoadConfig()
-
-	connStr := loadConfig.BuildConnStr()
-
-	log.Printf("Строка подключения к бд: %s", connStr)
-
-	db, err := sqlx.Open("postgres", connStr)
-	if err != nil {
-		log.Fatalf("Ошибка подключения к базе данных: %v", err)
-	}
-	log.Println("База данных подключена")
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Fatalf("Ошибка закрытия подключения: %v", err)
-		}
-	}()
-
-	protocol, port := loadConfig.GetProtocolAndPort()
+func StartServer(lc fx.Lifecycle, h handler.Handler, conf *config.Config) {
+	protocol, port := conf.GetProtocolAndPort()
 	listener, err := net.Listen(protocol, port)
 	if err != nil {
-		log.Fatalf("Ошибка запуска сервера: %v", err)
+		panic(err)
 	}
+	server := grpc.NewServer()
+	proto.RegisterChatServiceServer(server, h)
 
-	log.Printf("Сервер запущен на порту %s", port)
-	server.StartServer(listener, db)
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			log.Println("gRPC-сервер запущен")
+			go func() {
+				if err := server.Serve(listener); err != nil {
+					log.Fatalf("Ошибка запуска gRPC-сервера: %v", err)
+				}
+			}()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			server.GracefulStop()
+			log.Println("gRPC-сервер остановлен")
+			return nil
+		},
+	})
+}
+
+func main() {
+	application := fx.New(
+		fx.Provide(
+			config.NewConfig,
+			storage.CreatePostgresConnection,
+			user.NewStore,
+			message.NewStore,
+			activity.NewStore,
+			storage.Construct,
+			handler.NewHandler,
+		),
+		fx.Invoke(StartServer),
+	)
+	application.Run()
 }
