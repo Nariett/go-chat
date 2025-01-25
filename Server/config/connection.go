@@ -36,6 +36,23 @@ func NewConfig() *Config {
 	}
 }
 
+func NewTestConfig() *Config {
+	if err := godotenv.Load("../../../../../.env"); err != nil {
+		log.Fatalf("Ошибка загрузки файла .env: %v", err)
+	}
+
+	return &Config{
+		DBUser:     os.Getenv("DB_USER"),
+		DBPassword: os.Getenv("DB_PASSWORD"),
+		DBName:     os.Getenv("TEST_DB_NAME"),
+		DBSSLMode:  os.Getenv("DB_SSLMODE"),
+		Protocol:   os.Getenv("PROTOCOL"),
+		DBPort:     os.Getenv("DB_PORT"),
+		LPort:      os.Getenv("LPORT"),
+		DBHost:     os.Getenv("DB_HOST"),
+	}
+}
+
 func (c *Config) BuildConnStr() string {
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", c.DBHost, c.DBPort, c.DBUser, c.DBPassword, c.DBName, c.DBSSLMode)
 }

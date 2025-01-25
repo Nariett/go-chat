@@ -9,6 +9,8 @@ import (
 	"Server/internal/storage/repos/user"
 	"context"
 	proto "github.com/Nariett/go-chat/Proto"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
