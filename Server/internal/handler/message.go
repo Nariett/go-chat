@@ -29,6 +29,16 @@ func (h *handler) ReadAllMessages(_ context.Context, id *proto.UserId) (*proto.S
 	}()
 	return &proto.ServerResponse{Success: true, Message: "Все сообщения прочтены."}, nil
 }
+func (h *handler) ReadAllMessagesFrom(_ context.Context, unreadChat *proto.UnreadChat) (*proto.ServerResponse, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	err := h.message.UpdateAllMessagesFromUserReadStatus(unreadChat)
+	if err != nil {
+		log.Printf("Ошибка получения данных из бд: %v", err)
+		return nil, err
+	}
+	return &proto.ServerResponse{Success: true, Message: "Сообщения от пользователя прочитаны"}, nil
+}
 
 func (h *handler) InsertMessage(_ context.Context, msg *proto.UserMessage) (*proto.Empty, error) {
 	go func() {
@@ -40,4 +50,15 @@ func (h *handler) InsertMessage(_ context.Context, msg *proto.UserMessage) (*pro
 		}
 	}()
 	return &proto.Empty{}, nil
+}
+
+func (h *handler) GetUnreadMessagesFromUser(_ context.Context, user *proto.UnreadChat) (*proto.UserMessages, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	result, err := h.message.GetUnreadMessagesFromUser(user)
+	if err != nil {
+		log.Printf("Ошибка получения данных из бд: %v", err)
+		return nil, err
+	}
+	return result, nil
 }

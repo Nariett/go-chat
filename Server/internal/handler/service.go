@@ -24,9 +24,8 @@ type Handler interface {
 	GetUserId(_ context.Context, user *proto.UserName) (*proto.UserId, error)
 	GetUnreadMessagesCounter(_ context.Context, userId *proto.UserId) (*proto.UnreadMessages, error)
 	GetUsersActivityDates(_ context.Context, empty *proto.Empty) (*proto.UserActivityDates, error)
-
-	//GetUnreadMessagesFromUser(context.Context, *proto.UnreadChat) (*proto.Empty, error)
-	//ReadAllMessagesFrom(context.Context, *proto.UnreadChat) (*proto.ServerResponse, error)
+	GetUnreadMessagesFromUser(_ context.Context, user *proto.UnreadChat) (*proto.UserMessages, error)
+	ReadAllMessagesFrom(context.Context, *proto.UnreadChat) (*proto.ServerResponse, error)
 }
 
 type handler struct {

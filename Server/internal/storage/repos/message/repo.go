@@ -7,10 +7,11 @@ import (
 
 type Store interface {
 	GetUnreadMessagesCounter(id *proto.UserId) (*proto.UnreadMessages, error)
-	GetUnreadMessagesFromUser(userId *proto.UserId) ([]*proto.UserMessage, error)
+	GetUnreadMessagesFromUser(user *proto.UnreadChat) (*proto.UserMessages, error)
 	InsertMessage(message *proto.UserMessage) error
 	UpdateAllMessageReadStatus(userId *proto.UserId) error
 	UpdateMessageReadStatus(message *proto.UserMessage) error
+	UpdateAllMessagesFromUserReadStatus(unreadChat *proto.UnreadChat) error
 }
 
 type store struct {

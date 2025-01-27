@@ -39,6 +39,12 @@ func (r *ChatRepository) LeaveChat(name string) (*proto.ServerResponse, error) {
 func (r *ChatRepository) ReadAllMessages(id int32) (*proto.ServerResponse, error) {
 	return r.client.ReadAllMessages(context.Background(), &proto.UserId{Id: id})
 }
+func (r *ChatRepository) ReadAllMessagesFromUser(senderId, recipientId int32) (*proto.ServerResponse, error) {
+	return r.client.ReadAllMessagesFrom(context.Background(), &proto.UnreadChat{Sender: senderId, Recipient: recipientId})
+}
+func (r *ChatRepository) GetUnreadMessagesFromUser(senderId, recipientId int32) (*proto.UserMessages, error) {
+	return r.client.GetUnreadMessagesFromUser(context.Background(), &proto.UnreadChat{Sender: senderId, Recipient: recipientId})
+}
 
 func (r *ChatRepository) SendMessage(sender string, senderId int32, recipient string, recipientId int32, content string) (*proto.Empty, error) {
 	message := &proto.UserMessage{
@@ -201,9 +207,31 @@ func ArrayContainsSubstring(stringArray []string, stringCheck string) bool {
 	return false
 }
 
+func ShowMessagesFromUser(client *ChatRepository, senderId, recipientId int32, recipientName string) {
+	result, err := client.GetUnreadMessagesFromUser(senderId, recipientId)
+	if err != nil {
+		fmt.Println("Ошибка получения непрочитанных сообщений")
+	}
+	if result == nil {
+		return
+	} else {
+		fmt.Println("Новые сообщения: ")
+	}
+	for _, messages := range result.Messages {
+		fmt.Printf("[%s] %s\n", recipientName, messages.Content)
+	}
+	_, err = client.ReadAllMessagesFromUser(senderId, recipientId)
+	if err != nil {
+		log.Printf("Ошибка чтений сообщений от пользователя: %v", err)
+	}
+
+}
+
 func ChatSession(client *ChatRepository, name string, userId int32, recipient string, recipientId int32) error {
 	fmt.Println("Открыт чат с пользователем :", recipient, "для выхода в чаты напишите '/Чаты'")
+	ShowMessagesFromUser(client, userId, recipientId, recipient)
 	scanner := bufio.NewScanner(os.Stdin)
+
 	for {
 		scanner.Scan()
 		message := scanner.Text()

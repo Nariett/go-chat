@@ -6,14 +6,14 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *store) GetUnreadMessagesFromUser(userId *proto.UserId) ([]*proto.UserMessage, error) {
+func (s *store) GetUnreadMessagesFromUser(user *proto.UnreadChat) (*proto.UserMessages, error) {
 	var result []dbo.Message
-	query := `SELECT * FROM messages WHERE sender_id = $1 AND recipient_id = $2 ORDER BY id`
-	err := s.db.Select(&result, query, userId.Id, userId.Id)
+	query := `SELECT * FROM messages WHERE sender_id = $1 AND recipient_id = $2 AND read_at IS NULL ORDER BY id`
+	err := s.db.Select(&result, query, user.Recipient, user.Sender)
 	if err != nil {
 		return nil, err
 	}
-	var messages []*proto.UserMessage
+	var messagesArray []*proto.UserMessage
 	for _, msg := range result {
 		message := &proto.UserMessage{
 			SenderId:    int32(msg.SenderId),
@@ -21,7 +21,11 @@ func (s *store) GetUnreadMessagesFromUser(userId *proto.UserId) ([]*proto.UserMe
 			Content:     msg.Content,
 			SentAt:      timestamppb.New(msg.SentAt),
 		}
-		messages = append(messages, message)
+		messagesArray = append(messagesArray, message)
 	}
+	messages := &proto.UserMessages{
+		Messages: messagesArray,
+	}
+
 	return messages, nil
 }
