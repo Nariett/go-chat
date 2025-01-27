@@ -52,7 +52,7 @@ type ChatServiceClient interface {
 	GetUserId(ctx context.Context, in *UserName, opts ...grpc.CallOption) (*UserId, error)
 	// Messages
 	GetUnreadMessagesCounter(ctx context.Context, in *UserId, opts ...grpc.CallOption) (*UnreadMessages, error)
-	GetUnreadMessagesFromUser(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*Empty, error)
+	GetUnreadMessagesFromUser(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*UserMessages, error)
 	ReadOneMessage(ctx context.Context, in *UserMessage, opts ...grpc.CallOption) (*Empty, error)
 	ReadAllMessagesFrom(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*ServerResponse, error)
 	ReadAllMessages(ctx context.Context, in *UserId, opts ...grpc.CallOption) (*ServerResponse, error)
@@ -175,9 +175,9 @@ func (c *chatServiceClient) GetUnreadMessagesCounter(ctx context.Context, in *Us
 	return out, nil
 }
 
-func (c *chatServiceClient) GetUnreadMessagesFromUser(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*Empty, error) {
+func (c *chatServiceClient) GetUnreadMessagesFromUser(ctx context.Context, in *UnreadChat, opts ...grpc.CallOption) (*UserMessages, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Empty)
+	out := new(UserMessages)
 	err := c.cc.Invoke(ctx, ChatService_GetUnreadMessagesFromUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -232,7 +232,7 @@ type ChatServiceServer interface {
 	GetUserId(context.Context, *UserName) (*UserId, error)
 	// Messages
 	GetUnreadMessagesCounter(context.Context, *UserId) (*UnreadMessages, error)
-	GetUnreadMessagesFromUser(context.Context, *UnreadChat) (*Empty, error)
+	GetUnreadMessagesFromUser(context.Context, *UnreadChat) (*UserMessages, error)
 	ReadOneMessage(context.Context, *UserMessage) (*Empty, error)
 	ReadAllMessagesFrom(context.Context, *UnreadChat) (*ServerResponse, error)
 	ReadAllMessages(context.Context, *UserId) (*ServerResponse, error)
@@ -276,7 +276,7 @@ func (UnimplementedChatServiceServer) GetUserId(context.Context, *UserName) (*Us
 func (UnimplementedChatServiceServer) GetUnreadMessagesCounter(context.Context, *UserId) (*UnreadMessages, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUnreadMessagesCounter not implemented")
 }
-func (UnimplementedChatServiceServer) GetUnreadMessagesFromUser(context.Context, *UnreadChat) (*Empty, error) {
+func (UnimplementedChatServiceServer) GetUnreadMessagesFromUser(context.Context, *UnreadChat) (*UserMessages, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUnreadMessagesFromUser not implemented")
 }
 func (UnimplementedChatServiceServer) ReadOneMessage(context.Context, *UserMessage) (*Empty, error) {
