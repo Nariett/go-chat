@@ -8,24 +8,24 @@ import "google/protobuf/timestamp.proto";
 
 service ChatService{
     //ChatLogic
-    rpc RegUser(UserData) returns (ServerResponse);
-    rpc AuthUser(UserData) returns (ServerResponse);
+    rpc RegisterUser(UserData) returns (ServerResponse);
+    rpc AuthenticateUser(UserData) returns (ServerResponse);
     rpc JoinChat(UserName) returns (stream UserMessage);
     rpc LeaveChat(UserName) returns (ServerResponse);
     rpc SendMessage (UserMessage) returns (Empty);
 
     //Users
     rpc GetUsers(Empty) returns (Users);
-    rpc GetActiveUsers(Empty) returns (Users);
+    rpc GetUsersActivity(Empty) returns (Users);
     rpc GetUsersActivityDates(Empty) returns (UserActivityDates);
     rpc GetUserId (UserName) returns (UserId);
 
     //Messages
-    rpc GetUnreadMessagesCounter (UserId) returns (UnreadMessages);
+    rpc GetUnreadMessageCount (UserId) returns (UnreadMessages);
     rpc GetUnreadMessagesFromUser(UnreadChat) returns (UserMessages);
-    rpc ReadOneMessage (UserMessage) returns (Empty);
-    rpc ReadAllMessagesFrom (UnreadChat) returns (ServerResponse);
-    rpc ReadAllMessages (UserId) returns (ServerResponse);
+    rpc MarkMessageAsRead (UserMessage) returns (Empty);
+    rpc MarkAllMessagesAsReadFromUser (UnreadChat) returns (ServerResponse);
+    rpc MarkAllMessagesAsRead (UserId) returns (ServerResponse);
 }
 message UserId{
     int32 id = 1;
