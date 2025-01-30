@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func (h *handler) RegUser(ctx context.Context, user *proto.UserData) (*proto.ServerResponse, error) {
+func (h *handler) RegisterUser(ctx context.Context, user *proto.UserData) (*proto.ServerResponse, error) {
 	resultChan := make(chan *proto.ServerResponse)
 	errorChan := make(chan error)
 	go func() {
@@ -29,7 +29,7 @@ func (h *handler) RegUser(ctx context.Context, user *proto.UserData) (*proto.Ser
 	}
 }
 
-func (h *handler) AuthUser(ctx context.Context, user *proto.UserData) (*proto.ServerResponse, error) {
+func (h *handler) AuthenticateUser(ctx context.Context, user *proto.UserData) (*proto.ServerResponse, error) {
 	resultChan := make(chan *proto.ServerResponse)
 	errorChan := make(chan error)
 	go func() {

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func (h *handler) GetActiveUsers(_ context.Context, _ *proto.Empty) (*proto.Users, error) {
+func (h *handler) GetUsersActivity(_ context.Context, _ *proto.Empty) (*proto.Users, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	var activeUsers []string
@@ -32,7 +32,7 @@ func (h *handler) GetUserId(_ context.Context, user *proto.UserName) (*proto.Use
 	}
 	return &proto.UserId{Id: userId}, err
 }
-func (h *handler) GetUnreadMessagesCounter(_ context.Context, userId *proto.UserId) (*proto.UnreadMessages, error) {
+func (h *handler) GetUnreadMessageCount(_ context.Context, userId *proto.UserId) (*proto.UnreadMessages, error) {
 	unreadMessages, err := h.message.GetUnreadMessagesCounter(userId)
 	if err != nil {
 		log.Fatal("Ошибка получения непрочитанных сообщений")

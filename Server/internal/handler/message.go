@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func (h *handler) ReadOneMessage(_ context.Context, msg *proto.UserMessage) (*proto.Empty, error) {
+func (h *handler) MarkMessageAsRead(_ context.Context, msg *proto.UserMessage) (*proto.Empty, error) {
 	go func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
@@ -18,7 +18,7 @@ func (h *handler) ReadOneMessage(_ context.Context, msg *proto.UserMessage) (*pr
 	return &proto.Empty{}, nil
 }
 
-func (h *handler) ReadAllMessages(_ context.Context, id *proto.UserId) (*proto.ServerResponse, error) {
+func (h *handler) MarkAllMessagesAsRead(_ context.Context, id *proto.UserId) (*proto.ServerResponse, error) {
 	go func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
@@ -29,7 +29,7 @@ func (h *handler) ReadAllMessages(_ context.Context, id *proto.UserId) (*proto.S
 	}()
 	return &proto.ServerResponse{Success: true, Message: "Все сообщения прочтены."}, nil
 }
-func (h *handler) ReadAllMessagesFrom(_ context.Context, unreadChat *proto.UnreadChat) (*proto.ServerResponse, error) {
+func (h *handler) MarkAllMessagesAsReadFromUser(_ context.Context, unreadChat *proto.UnreadChat) (*proto.ServerResponse, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	err := h.message.UpdateAllMessagesFromUserReadStatus(unreadChat)
