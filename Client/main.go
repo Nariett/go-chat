@@ -64,7 +64,7 @@ func main() {
 				fmt.Println("Вы вышли из чата")
 				os.Exit(0)
 			} else if recipient == "/Прочитать все" {
-				response, err := client.ReadAllMessages(idUser)
+				response, err := client.MarkAllMessagesAsRead(idUser)
 				if err != nil {
 					log.Fatalln("Ошибка чтения сообщений")
 				}

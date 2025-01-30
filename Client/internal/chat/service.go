@@ -2,65 +2,12 @@ package chat
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	proto "github.com/Nariett/go-chat/Proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
 	"os"
 	"strings"
 )
-
-func (r *ChatRepository) GetActiveUsers() (*proto.Users, error) {
-	return r.client.GetActiveUsers(context.Background(), &proto.Empty{})
-}
-func (r *ChatRepository) GetUsers() (*proto.Users, error) {
-	return r.client.GetUsers(context.Background(), &proto.Empty{})
-}
-func (r *ChatRepository) GetUserId(name string) (int32, error) {
-	idUser, err := r.client.GetUserId(context.Background(), &proto.UserName{Name: name})
-	if err != nil {
-		return -1, err
-	}
-	return idUser.Id, nil
-}
-func (r *ChatRepository) GetUnreadMessagesCounter(id int32) (*proto.UnreadMessages, error) {
-	return r.client.GetUnreadMessagesCounter(context.Background(), &proto.UserId{Id: id})
-}
-func (r *ChatRepository) GetUsersActivityDates() (*proto.UserActivityDates, error) {
-	return r.client.GetUsersActivityDates(context.Background(), &proto.Empty{})
-}
-func (r *ChatRepository) JoinChat(name string) (proto.ChatService_JoinChatClient, error) {
-	return r.client.JoinChat(context.Background(), &proto.UserName{Name: name})
-}
-func (r *ChatRepository) LeaveChat(name string) (*proto.ServerResponse, error) {
-	return r.client.LeaveChat(context.Background(), &proto.UserName{Name: name})
-}
-func (r *ChatRepository) ReadAllMessages(id int32) (*proto.ServerResponse, error) {
-	return r.client.ReadAllMessages(context.Background(), &proto.UserId{Id: id})
-}
-func (r *ChatRepository) ReadAllMessagesFromUser(senderId, recipientId int32) (*proto.ServerResponse, error) {
-	return r.client.ReadAllMessagesFrom(context.Background(), &proto.UnreadChat{Sender: senderId, Recipient: recipientId})
-}
-func (r *ChatRepository) GetUnreadMessagesFromUser(senderId, recipientId int32) (*proto.UserMessages, error) {
-	return r.client.GetUnreadMessagesFromUser(context.Background(), &proto.UnreadChat{Sender: senderId, Recipient: recipientId})
-}
-
-func (r *ChatRepository) SendMessage(sender string, senderId int32, recipient string, recipientId int32, content string) (*proto.Empty, error) {
-	message := &proto.UserMessage{
-		Sender:      sender,
-		SenderId:    senderId,
-		Recipient:   recipient,
-		RecipientId: recipientId,
-		Content:     content,
-		SentAt:      timestamppb.Now(),
-	}
-	response, err := r.client.SendMessage(context.Background(), message)
-	if err != nil {
-		return nil, err
-	}
-	return response, nil
-}
 
 func (r *ChatRepository) ListenChat(stream proto.ChatService_JoinChatClient) {
 	for {
@@ -70,7 +17,7 @@ func (r *ChatRepository) ListenChat(stream proto.ChatService_JoinChatClient) {
 		}
 		if msg.Sender == r.CurrentChatUser {
 			fmt.Printf("[%s]: %s\n", msg.Sender, msg.Content)
-			_, err = r.client.ReadOneMessage(context.Background(), msg)
+			_, err = r.MarkMessagesAsRead(msg)
 			if err != nil {
 				log.Fatalf("Ошибка обновления данных: %v", err)
 			}
@@ -79,19 +26,19 @@ func (r *ChatRepository) ListenChat(stream proto.ChatService_JoinChatClient) {
 }
 
 func (r *ChatRepository) GetOnlineUsersWithMessageCount(id int32, name string) []string {
-	activeUsers, err := r.GetActiveUsers()
+	activeUsers, err := r.GetUsersActivity()
 	if err != nil {
-		log.Fatalf("Ошибка получения списка активных пользователй: %v", err)
+		log.Fatalf("Ошибка получения списка активных пользователей: %v", err)
 	}
 
 	users, err := r.GetUsers()
 	if err != nil {
-		log.Fatalf("Ошибка получения списка пользователй: %v", err)
+		log.Fatalf("Ошибка получения списка пользователей: %v", err)
 	}
 
-	messageCount, err := r.GetUnreadMessagesCounter(id)
+	messageCount, err := r.GetUnreadMessageCount(id)
 	if err != nil {
-		log.Fatalf("Ошибка получения списка полученных сообщений: %v", err)
+		log.Fatalf("Ошибка получения списка непрочитанных сообщений: %v", err)
 	}
 
 	usersActivityDates, err := r.GetUsersActivityDates()
@@ -138,7 +85,7 @@ func InitUser(client *ChatRepository) string {
 			fmt.Println("Введите пароль: ")
 			scanner.Scan()
 			password = scanner.Text()
-			response, err := client.AuthUser(name, password)
+			response, err := client.AuthenticateUser(name, password)
 			if err != nil {
 				log.Fatalf("Ошибка аутентификации: %v", err)
 			}
@@ -156,7 +103,7 @@ func InitUser(client *ChatRepository) string {
 				fmt.Println("Введите пароль: ")
 				scanner.Scan()
 				password = scanner.Text()
-				response, err := client.RegUser(name, password)
+				response, err := client.RegisterUser(name, password)
 				if err != nil {
 					log.Fatalf("Ошибка регистрации: %v", err)
 				}
@@ -183,7 +130,7 @@ func InitUser(client *ChatRepository) string {
 func ExitChat(client *ChatRepository, name string) {
 	response, err := client.LeaveChat(name)
 	if err != nil {
-		fmt.Println("Ошибка)")
+		log.Fatalf("Ошибка выхода из чата: %v", err)
 	}
 	fmt.Println(response.Message)
 	os.Exit(0)
@@ -212,15 +159,15 @@ func ShowMessagesFromUser(client *ChatRepository, senderId, recipientId int32, r
 	if err != nil {
 		fmt.Println("Ошибка получения непрочитанных сообщений")
 	}
-	if result == nil {
+	if result == nil || len(result.Messages) == 0 {
 		return
 	} else {
-		fmt.Println("Новые сообщения: ")
+		fmt.Printf("Новые сообщения: %d\n", len(result.Messages))
 	}
 	for _, messages := range result.Messages {
 		fmt.Printf("[%s] %s\n", recipientName, messages.Content)
 	}
-	_, err = client.ReadAllMessagesFromUser(senderId, recipientId)
+	_, err = client.MarkAllMessagesAsReadFromUser(senderId, recipientId)
 	if err != nil {
 		log.Printf("Ошибка чтений сообщений от пользователя: %v", err)
 	}
