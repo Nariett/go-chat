@@ -7,6 +7,7 @@ import (
 	"Server/internal/storage/repos/activity"
 	"Server/internal/storage/repos/message"
 	"Server/internal/storage/repos/user"
+	"Server/schema"
 	"context"
 	proto "github.com/Nariett/go-chat/Proto"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -56,7 +57,9 @@ func main() {
 			storage.Construct,
 			handler.NewHandler,
 		),
-		fx.Invoke(StartServer),
+		fx.Invoke(
+			schema.Migrate,
+			StartServer),
 	)
 	application.Run()
 }

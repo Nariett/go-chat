@@ -19,7 +19,7 @@ func (r *ChatRepository) ListenChat(stream proto.ChatService_JoinChatClient) {
 			fmt.Printf("[%s]: %s\n", msg.Sender, msg.Content)
 			_, err = r.MarkMessagesAsRead(msg)
 			if err != nil {
-				log.Fatalf("Ошибка обновления данных: %v", err)
+				log.Fatalf("Ошибка при обновлении статуса прочитанного сообщения: %v", err)
 			}
 		}
 	}
@@ -70,7 +70,7 @@ func InitUser(client *ChatRepository) string {
 	var (
 		name     string
 		password string
-		flag     bool = false
+		flag     = false
 	)
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
@@ -79,12 +79,8 @@ func InitUser(client *ChatRepository) string {
 		value := scanner.Text()
 		switch value {
 		case "1":
-			fmt.Println("Введите имя: ")
-			scanner.Scan()
-			name = scanner.Text()
-			fmt.Println("Введите пароль: ")
-			scanner.Scan()
-			password = scanner.Text()
+			name = GetInput("Введите имя: ")
+			password = GetInput("Введите пароль: ")
 			response, err := client.AuthenticateUser(name, password)
 			if err != nil {
 				log.Fatalf("Ошибка аутентификации: %v", err)
@@ -97,12 +93,9 @@ func InitUser(client *ChatRepository) string {
 			}
 		case "2":
 			for {
-				fmt.Println("Введите имя: ")
-				scanner.Scan()
-				name := scanner.Text()
-				fmt.Println("Введите пароль: ")
-				scanner.Scan()
-				password = scanner.Text()
+				name := GetInput("Введите имя: ")
+				password := GetInput("Введите пароль: ")
+
 				response, err := client.RegisterUser(name, password)
 				if err != nil {
 					log.Fatalf("Ошибка регистрации: %v", err)
@@ -114,7 +107,6 @@ func InitUser(client *ChatRepository) string {
 					fmt.Println(response.Message)
 				}
 			}
-
 		case "3":
 			fmt.Println("Вы вышли из чата...")
 			os.Exit(1)
@@ -124,6 +116,19 @@ func InitUser(client *ChatRepository) string {
 		if flag {
 			return name
 		}
+	}
+}
+
+func GetInput(prompt string) string {
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print(prompt)
+		scanner.Scan()
+		text := strings.TrimSpace(scanner.Text())
+		if text != "" {
+			return text
+		}
+		fmt.Println("Поле не может быть пустым. Попробуйте еще раз.")
 	}
 }
 
@@ -144,6 +149,7 @@ func Contains(users *proto.Users, username string) bool {
 	}
 	return false
 }
+
 func ArrayContainsSubstring(stringArray []string, stringCheck string) bool {
 	for _, value := range stringArray {
 		name := strings.Split(value, "\t")[0]
@@ -181,7 +187,7 @@ func ChatSession(client *ChatRepository, name string, userId int32, recipient st
 
 	for {
 		scanner.Scan()
-		message := scanner.Text()
+		message := strings.TrimSpace(scanner.Text())
 		if message == "/Чаты" {
 			fmt.Println("Вы перешли в чаты")
 			client.CurrentChatUser = ""

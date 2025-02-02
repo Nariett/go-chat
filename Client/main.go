@@ -39,11 +39,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Ошибка получения id пользователя: %v", err)
 	}
+
 	go client.ListenChat(stream)
 	for {
-		fmt.Println("Для выхода из приложения введите '/Выход'")
-		fmt.Println("Для выхода из приложения введите '/Прочитать все'")
-		fmt.Println("Список пользователей '(x)' - число новых сообщений")
+		fmt.Println("Введите '/Выход' для выхода из приложения.")
+		fmt.Println("Введите '/Прочитать все' для просмотра всех чатов.")
+		fmt.Println("Список пользователей: '(x)' — количество новых сообщений.")
 
 		onlineUser := client.GetOnlineUsersWithMessageCount(idUser, name)
 		for _, user := range onlineUser {

@@ -3,7 +3,7 @@ module Server
 go 1.23.3
 
 require (
-	github.com/Nariett/go-chat/Proto v0.0.0-20250130133336-05de0bad15a6
+	github.com/Nariett/go-chat/Proto v0.0.0-20250130150806-4b33851c3c66
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/golang/mock v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
